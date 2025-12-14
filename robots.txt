@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://omappstudio.github.io/sitemap.xml
+
