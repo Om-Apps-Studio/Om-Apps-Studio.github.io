@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocFilter - Word Processor</title>
+    <!-- JSZip required by docx-preview -->
+    <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+    <!-- Docx-Preview -->
+    <script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-app: #f4f7f6;
+            --bg-surface: rgba(255, 255, 255, 0.85);
+            --bg-sidebar: rgba(248, 250, 252, 0.7);
+            --primary: #3b82f6;
+            --primary-alpha: rgba(59, 130, 246, 0.15);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+            --radius-md: 12px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --glass-blur: blur(16px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            /* Add a subtle background gradient for a premium feel */
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.7);
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Main Wrapper (right side of sidebar) */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Glassmorphism Sidebar */
+        .sidebar {
+            width: 320px;
+            background-color: var(--bg-sidebar);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        /* Glassmorphism Toolbar */
+        .toolbar {
+            height: 60px;
+            background-color: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 100;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-right: 1px solid var(--border-color);
+            padding-right: 10px;
+            margin-right: 2px;
+            flex-shrink: 0;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+            padding-right: 0;
+            margin-right: 0;
+            flex: 1 1 auto;
+            justify-content: flex-end;
+        }
+
+        .tool-btn {
+            background: transparent;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: var(--transition);
+            font-size: 18px;
+        }
+
+        .tool-btn:hover {
+            background-color: var(--primary-alpha);
+            color: var(--primary);
+        }
+
+        .tool-btn.active {
+            background-color: var(--primary-alpha);
+            color: var(--primary);
+        }
+
+        .zoom-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Sidebar Elements */
+        .brand {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .toc-header {
+            padding: 16px 24px 8px 24px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toc-list {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+            padding: 8px 16px 24px 16px;
+        }
+
+        .toc-item {
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+        }
+
+        .toc-item:hover {
+            background-color: var(--border-color);
+        }
+
+        .toc-item.active {
+            background-color: var(--primary-alpha);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .toc-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 4px;
+            color: var(--text-muted);
+            border-radius: 4px;
+        }
+
+        .toc-icon:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Upload Area */
+        .upload-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .upload-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .upload-card {
+            background-color: var(--bg-surface);
+            border: 2px dashed var(--primary);
+            border-radius: 16px;
+            padding: 48px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .upload-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 25px 50px rgba(59, 130, 246, 0.15);
+        }
+
+        #fileInput {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Document Reading Area */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            padding: 80px 40px 40px 40px;
+            /* offset for toolbar */
+            background: transparent;
+        }
+
+        #documentContainer {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            transform-origin: top center;
+            transition: transform 0.2s ease;
+        }
+
+        /* Ensure docx-preview wrapper looks exactly like Word */
+        .docx-wrapper {
+            background: transparent !important;
+            padding: 0 !important;
+        }
+
+        .docx-wrapper>section.docx {
+            background: white;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+        }
+
+        /* Word-Level Highlight Styles */
+        .tts-word-active {
+            background-color: #fef08a !important;
+            /* Tailwind Yellow 200 */
+            color: #1e3a8a !important;
+            /* Tailwind Blue 900 */
+            border-radius: 4px;
+            box-shadow: 0 0 0 2px #fef08a;
+            transition: all 0.15s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tts-block-active {
+            border-left: 4px solid var(--primary) !important;
+            background-color: var(--primary-alpha) !important;
+            transition: all 0.3s ease;
+        }
+
+        /* Filtering styles */
+        .hidden-node {
+            display: none !important;
+        }
+
+        /* Search Results Styles */
+        .search-result-item {
+            background-color: var(--bg-surface);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .search-result-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateX(4px);
+        }
+
+        .search-result-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+
+        mark {
+            background-color: rgba(250, 204, 21, 0.4);
+            color: inherit;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: var(--bg-app);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 6px 12px;
+            width: 260px;
+            max-width: 280px;
+            min-width: 140px;
+            flex: 1 1 auto;
+        }
+
+        .search-bar input {
+            border: none;
+            background: transparent;
+            outline: none;
+            margin-left: 8px;
+            width: 100%;
+            color: var(--text-main);
+        }
+
+        /* Sidebar Backdrop Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 99;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mobile-toggle-btn {
+            display: none;
+        }
+
+        .mobile-close-btn {
+            display: none;
+        }
+
+        /* Mobile Media Queries */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+                position: relative;
+            }
+
+            .mobile-toggle-btn {
+                display: flex;
+            }
+
+            .mobile-close-btn {
+                display: flex;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 290px;
+                z-index: 1000;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .toolbar {
+                height: auto;
+                min-height: 56px;
+                padding: 8px 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+                position: sticky;
+                top: 0;
+                left: 0;
+                right: 0;
+                box-shadow: var(--shadow-sm);
+            }
+
+            .toolbar-group {
+                padding-right: 8px;
+                margin-right: 8px;
+                gap: 4px;
+            }
+
+            .toolbar-group:last-child {
+                width: 100%;
+                margin-left: 0 !important;
+                margin-top: 4px;
+                align-items: stretch !important;
+            }
+
+            .search-bar {
+                width: 100% !important;
+            }
+
+            .main-content {
+                padding: 16px 8px 32px 8px;
+                overflow-x: hidden;
+            }
+
+            #documentContainer {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+
+            .docx-wrapper {
+                padding: 0 !important;
+            }
+
+            .docx-wrapper>section.docx {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 16px 12px !important;
+                margin-bottom: 16px !important;
+                box-sizing: border-box !important;
+                box-shadow: none !important;
+                border-radius: 8px !important;
+            }
+
+            /* Responsive tables and media */
+            section.docx table {
+                max-width: 100% !important;
+                display: block !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            section.docx img,
+            section.docx svg,
+            section.docx canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            .upload-card {
+                padding: 24px 16px;
+                max-width: 90%;
+            }
+        }
+
+        /* Heading Filter Dropdown & Collapsible Tree Styles */
+        .filter-dropdown-group {
+            position: relative;
+            display: inline-block;
+        }
+
+        .filter-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 380px;
+            max-width: calc(100vw - 24px);
+            max-height: 82vh;
+            background-color: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .filter-dropdown-menu.active {
+            display: flex;
+        }
+
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .filter-dropdown-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(248, 250, 252, 0.6);
+        }
+
+        .filter-search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 10px;
+            flex: 1;
+        }
+
+        .filter-search-box input {
+            border: none;
+            outline: none;
+            font-size: 13px;
+            width: 100%;
+            margin-left: 6px;
+            color: var(--text-main);
+            background: transparent;
+        }
+
+        .filter-actions-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(59, 130, 246, 0.08);
+            color: var(--primary);
+            border-color: var(--primary-alpha);
+        }
+
+        .filter-dropdown-body {
+            padding: 10px 14px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: 380px;
+        }
+
+        .filter-tree-node {
+            margin-bottom: 2px;
+        }
+
+        .filter-tree-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .filter-tree-row:hover {
+            background-color: var(--primary-alpha);
+        }
+
+        .chevron-toggle {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 4px;
+            color: var(--text-muted);
+            transition: background 0.15s ease;
+        }
+
+        .chevron-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.08);
+            color: var(--primary);
+        }
+
+        .chevron-toggle i {
+            transition: transform 0.2s ease;
+            font-size: 13px;
+        }
+
+        .chevron-toggle.expanded i {
+            transform: rotate(90deg);
+        }
+
+        .chevron-spacer {
+            width: 22px;
+            height: 22px;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        .filter-tree-children {
+            display: none;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            border-left: 1.5px dashed rgba(148, 163, 184, 0.4);
+            margin-left: 10px;
+        }
+
+        .filter-tree-children.expanded {
+            display: block;
+        }
+
+        .level-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 8px;
+            text-transform: uppercase;
+        }
+
+        .level-badge.l1 {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .level-badge.l2 {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .level-badge.l3 {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .filter-tree-text {
+            font-size: 13px;
+            color: var(--text-main);
+            font-weight: 500;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .filter-dropdown-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            background-color: rgba(248, 250, 252, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filter-status-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Backdrop Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar(false)"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="ph-fill ph-file-word"></i>
+                <span>DocFilter Pro</span>
+                <button class="tool-btn mobile-close-btn" onclick="toggleMobileSidebar(false)" title="Close Navigation">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+
+            <div class="toc-header">
+                <span>Navigation Pane</span>
+                <div style="display: flex; gap: 4px;">
+                    <button class="tool-btn" style="width: 28px; height: 28px; font-size: 16px;"
+                        onclick="toggleFilterDropdown()" title="Filter Headings">
+                        <i class="ph ph-funnel"></i>
+                    </button>
+                    <button class="tool-btn" style="width: 28px; height: 28px; font-size: 16px;" onclick="resetFilter()"
+                        title="Show Full Document">
+                        <i class="ph ph-list-dashes"></i>
+                    </button>
+                </div>
+            </div>
+
+            <ul class="toc-list" id="tocList">
+                <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                    Upload a document to generate headings.
+                </div>
+            </ul>
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="main-wrapper">
+
+            <!-- Upload Screen -->
+            <div class="upload-overlay" id="uploadOverlay">
+                <div class="upload-card">
+                    <i class="ph-fill ph-file-arrow-up"
+                        style="font-size: 48px; color: var(--primary); margin-bottom: 16px;"></i>
+                    <h2 style="margin-bottom: 8px; color: var(--text-main);">Upload Word Document</h2>
+                    <p style="color: var(--text-muted);">Exact MS Word formatting will be preserved.</p>
+                    <input type="file" id="fileInput" accept=".docx" />
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <header class="toolbar">
+                <div class="toolbar-group">
+                    <button class="tool-btn mobile-toggle-btn" onclick="toggleMobileSidebar()" title="Navigation Pane">
+                        <i class="ph ph-sidebar-simple"></i>
+                    </button>
+                    <button class="tool-btn" onclick="document.getElementById('fileInput').click()" title="Open File">
+                        <i class="ph ph-folder-open"></i>
+                    </button>
+                    <button class="tool-btn" onclick="printDoc()" title="Print">
+                        <i class="ph ph-printer"></i>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <button class="tool-btn" id="editToggleBtn" onclick="toggleEditMode()" title="Enable Editing">
+                        <i class="ph ph-pencil-simple"></i>
+                    </button>
+                </div>
+
+                <div class="toolbar-group" id="ttsGroup">
+                    <!-- Voice Selection -->
+                    <select id="ttsVoiceSelect" onchange="changeTtsVoice()"
+                        style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 4px; font-size: 11px; padding: 4px; max-width: 140px; color: var(--text-main); outline: none; margin-right: 8px;">
+                        <option value="">Loading voices...</option>
+                    </select>
+
+                    <!-- Speed Controls -->
+                    <button class="tool-btn" onclick="changeTtsSpeed(-0.1)" title="Slower (Decrease Speed)">
+                        <i class="ph ph-minus"></i>
+                    </button>
+                    <span id="ttsSpeedLabel"
+                        style="font-size: 13px; font-weight: 700; color: var(--primary); min-width: 44px; text-align: center;">0.85x</span>
+                    <button class="tool-btn" onclick="changeTtsSpeed(0.1)" title="Faster (Increase Speed)">
+                        <i class="ph ph-plus"></i>
+                    </button>
+
+                    <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
+                    <button class="tool-btn" id="ttsBtn" onclick="toggleTTS()" title="Read Aloud">
+                        <i class="ph ph-speaker-high"></i>
+                    </button>
+                    <button class="tool-btn" id="ttsStopBtn" onclick="stopTTS()" title="Stop Reading"
+                        style="display: none; color: #EF4444;">
+                        <i class="ph ph-stop"></i>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <button class="tool-btn" onclick="changeZoom(-0.1)" title="Zoom Out">
+                        <i class="ph ph-minus"></i>
+                    </button>
+                    <div class="zoom-control">
+                        <span id="zoomLevel">100%</span>
+                    </div>
+                    <button class="tool-btn" onclick="changeZoom(0.1)" title="Zoom In">
+                        <i class="ph ph-plus"></i>
+                    </button>
+                </div>
+
+                <!-- Filter Dropdown Container -->
+                <div class="toolbar-group filter-dropdown-group" id="filterDropdownGroup">
+                    <button class="tool-btn" id="filterDropdownBtn" onclick="toggleFilterDropdown(event)"
+                        title="Filter Options"
+                        style="gap: 6px; padding: 0 12px; width: auto; font-size: 13px; font-weight: 600;">
+                        <i class="ph ph-funnel" style="font-size: 16px; color: var(--primary);"></i>
+                        <span>Filter</span>
+                        <i class="ph ph-caret-down" id="filterDropdownCaret"
+                            style="font-size: 12px; transition: transform 0.2s ease;"></i>
+                        <span id="activeFilterBadge"
+                            style="display: none; background: var(--primary); color: white; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700;">0</span>
+                    </button>
+
+                    <!-- Filter Dropdown Popover -->
+                    <div class="filter-dropdown-menu" id="filterDropdownMenu" onclick="event.stopPropagation()">
+                        <div class="filter-dropdown-header">
+                            <div
+                                style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="ph-fill ph-funnel" style="color: var(--primary); font-size: 18px;"></i>
+                                    <span style="font-weight: 700; font-size: 14px;">Document Filter</span>
+                                </div>
+                                <button class="tool-btn" style="width: 24px; height: 24px; font-size: 14px;"
+                                    onclick="toggleFilterDropdown(false)" title="Close Filter">
+                                    <i class="ph ph-x"></i>
+                                </button>
+                            </div>
+
+                            <div class="filter-search-box" style="margin-bottom: 8px;">
+                                <i class="ph ph-magnifying-glass" style="color: var(--text-muted);"></i>
+                                <input type="text" id="headingSearchInput" placeholder="Search headings..."
+                                    oninput="filterHeadingTreeList()">
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px;">
+                                <div class="filter-actions-group">
+                                    <button class="btn-secondary" onclick="expandAllFilterNodes(true)"
+                                        title="Expand All"><i class="ph ph-arrows-out-line"></i> Expand</button>
+                                    <button class="btn-secondary" onclick="expandAllFilterNodes(false)"
+                                        title="Collapse All"><i class="ph ph-arrows-in-line"></i> Collapse</button>
+                                </div>
+                                <div class="filter-actions-group">
+                                    <button class="btn-secondary" onclick="selectAllHeadings(true)">Select All</button>
+                                    <button class="btn-secondary" onclick="selectAllHeadings(false)">Clear All</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section Type Filtering Controls inside Dropdown -->
+                        <div
+                            style="padding: 10px 14px; background: rgba(241, 245, 249, 0.7); border-bottom: 1px solid var(--border-color); font-size: 11px;">
+                            <span
+                                style="font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">INCLUDE
+                                IN VISIBLE SECTIONS:</span>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;"><input
+                                        type="checkbox" id="chkHeading" checked onchange="applyHeadingFilter()">
+                                    Headings</label>
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;"><input
+                                        type="checkbox" id="chkSubHeading" checked onchange="applyHeadingFilter()">
+                                    Sub-Headings</label>
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;"><input
+                                        type="checkbox" id="chkLowerSubHeading" checked onchange="applyHeadingFilter()">
+                                    Lower Sub</label>
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;"><input
+                                        type="checkbox" id="chkPoints" checked onchange="applyHeadingFilter()">
+                                    Points/Bullets</label>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Tree Dropdown List -->
+                        <div class="filter-dropdown-body" id="headingFilterList">
+                            <!-- Dynamically populated collapsible checkbox tree list -->
+                        </div>
+
+                        <div class="filter-dropdown-footer">
+                            <div class="filter-status-text" id="filterStatusText">
+                                All headings & content visible
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="btn-secondary" onclick="resetHeadingFilterAndClose()">Show All</button>
+                                <button class="btn" style="padding: 5px 12px; font-size: 12px;"
+                                    onclick="toggleFilterDropdown(false)">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="toolbar-group">
+                    <div class="search-bar">
+                        <i class="ph ph-magnifying-glass" style="color: var(--text-muted);"></i>
+                        <input type="text" id="searchInput" placeholder="Search in document..."
+                            oninput="handleSearch()">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Document View -->
+            <main class="main-content" id="mainContent">
+                <div id="documentContainer">
+                    <!-- DOCX Preview gets injected here -->
+                </div>
+
+                <!-- Search Results Area -->
+                <div id="searchResultsView"
+                    style="display: none; width: 100%; max-width: 800px; flex-direction: column;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2 style="font-size: 24px; font-weight: 700;">Search Results</h2>
+                        <span id="searchCount"
+                            style="background: var(--primary-alpha); color: var(--primary); padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 14px;">0
+                            found</span>
+                    </div>
+                    <div id="searchResultsList"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let currentZoom = 1.0;
+        let isEditMode = false;
+        let headings = []; // Stores { element, level, id, title }
+        let selectedHeadingIndices = new Set();
+        let openFilterNodes = new Set(); // Stores indices of expanded heading nodes in filter tree dropdown
+
+        // Listen for file upload
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('uploadOverlay').classList.add('hidden');
+
+            const container = document.getElementById('documentContainer');
+            container.innerHTML = 'Loading document...';
+
+            // Configure docx-preview
+            const options = {
+                className: "docx",
+                inWrapper: true, // Renders pages like Word
+                ignoreWidth: false,
+                ignoreHeight: false,
+                ignoreFonts: false,
+                breakPages: true,
+                ignoreLastRenderedPageBreak: false,
+                experimental: false,
+                trimXmlDeclaration: true,
+                debug: false
+            };
+
+            docx.renderAsync(file, container, null, options)
+                .then(() => {
+                    console.log("Document rendered fully.");
+                    buildNavigationPane();
+                })
+                .catch(err => {
+                    console.error("Error rendering docx", err);
+                    container.innerHTML = `<div style="color: red;">Error rendering document. It might be corrupted.</div>`;
+                });
+        });
+
+        function changeZoom(delta) {
+            currentZoom += delta;
+            if (currentZoom < 0.5) currentZoom = 0.5;
+            if (currentZoom > 2.0) currentZoom = 2.0;
+
+            document.getElementById('zoomLevel').innerText = Math.round(currentZoom * 100) + '%';
+            document.getElementById('documentContainer').style.transform = `scale(${currentZoom})`;
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('editToggleBtn');
+            const sections = document.querySelectorAll('.docx'); // Elements created by docx-preview
+
+            if (isEditMode) {
+                btn.classList.add('active');
+                sections.forEach(s => s.setAttribute('contenteditable', 'true'));
+            } else {
+                btn.classList.remove('active');
+                sections.forEach(s => s.removeAttribute('contenteditable'));
+            }
+        }
+
+        function printDoc() {
+            window.print();
+        }
+
+        /**
+         * Text to Speech (Read Aloud)
+         */
+        let ttsUtterances = [];
+        let isTtsPlaying = false;
+        let isTtsPaused = false;
+        let ttsSpeed = 0.85;
+        let currentHighlightedBlock = null;
+        let currentTtsIndex = 0;
+        let selectedTtsVoice = null;
+
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            const select = document.getElementById('ttsVoiceSelect');
+
+            if (voices.length === 0) {
+                select.innerHTML = '<option value="">Loading voices...</option>';
+                setTimeout(loadVoices, 500); // Retry until voices are loaded
+                return;
+            }
+
+            // Prevent re-rendering if already loaded
+            if (select.options.length > 1) return;
+
+            select.innerHTML = '';
+
+            let defaultIndex = 0;
+            let indianIndex = -1;
+
+            voices.forEach((v, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                const isOnline = v.localService === false ? " (Online)" : "";
+                opt.textContent = `${v.name}${isOnline} [${v.lang}]`;
+                select.appendChild(opt);
+
+                if (v.default) defaultIndex = i;
+                if (indianIndex === -1 && v.lang.includes('en-IN') && v.name.toLowerCase().includes('female')) {
+                    indianIndex = i;
+                } else if (indianIndex === -1 && v.lang.includes('en-IN')) {
+                    indianIndex = i;
+                }
+            });
+
+            // Prefer Indian voice first, then fallback to OS Default
+            const chosenIndex = indianIndex !== -1 ? indianIndex : defaultIndex;
+            select.value = chosenIndex;
+            selectedTtsVoice = voices[chosenIndex];
+        }
+
+        // Call immediately and setup listener
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        function changeTtsVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            const select = document.getElementById('ttsVoiceSelect');
+            selectedTtsVoice = voices[select.value];
+
+            // Update currently queued future utterances
+            ttsUtterances.forEach(u => u.voice = selectedTtsVoice);
+        }
+
+        function changeTtsSpeed(delta) {
+            ttsSpeed += delta;
+            if (ttsSpeed < 0.5) ttsSpeed = 0.5;
+            if (ttsSpeed > 2.0) ttsSpeed = 2.0;
+            document.getElementById('ttsSpeedLabel').innerText = ttsSpeed.toFixed(2) + 'x';
+
+            ttsUtterances.forEach(u => u.rate = ttsSpeed);
+        }
+
+        // Word-level highlighting helpers
+        function wrapWordsInNode(node) {
+            // First, make sure it's clean
+            unwrapWordsInNode(node);
+
+            // Get the full textContent that SpeechSynthesis will use
+            // We need charCounter to match textContent exactly
+            const fullText = node.textContent;
+
+            const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
+            const textNodes = [];
+            while (walker.nextNode()) {
+                textNodes.push(walker.currentNode);
+            }
+
+            // Build a mapping: walk through fullText char by char
+            // and also walk through textNodes to find where each text node's chars land in fullText
+            let globalOffset = 0;
+
+            textNodes.forEach(textNode => {
+                const text = textNode.nodeValue;
+
+                // Split into words and spaces
+                const parts = text.split(/(\s+)/);
+                const fragment = document.createDocumentFragment();
+
+                parts.forEach(part => {
+                    if (part.length === 0) return;
+
+                    if (/\S/.test(part)) {
+                        // It's a word
+                        const span = document.createElement('span');
+                        span.className = 'tts-word';
+                        span.dataset.charStart = globalOffset;
+                        span.dataset.charEnd = globalOffset + part.length;
+                        span.textContent = part;
+                        fragment.appendChild(span);
+                    } else {
+                        // It's whitespace
+                        fragment.appendChild(document.createTextNode(part));
+                    }
+                    globalOffset += part.length;
+                });
+
+                textNode.parentNode.replaceChild(fragment, textNode);
+            });
+        }
+
+        function unwrapWordsInNode(node) {
+            const spans = node.querySelectorAll('.tts-word');
+            spans.forEach(span => {
+                const text = document.createTextNode(span.textContent);
+                span.parentNode.replaceChild(text, span);
+            });
+            node.normalize();
+        }
+
+        function getSelectedBlockItems(selection, range) {
+            const selectedText = selection.toString().trim();
+            if (!selectedText || !range) return [];
+
+            const allBlocks = Array.from(document.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6'))
+                .filter(el => el.offsetParent !== null && el.innerText.trim().length > 0);
+
+            const intersectingBlocks = allBlocks.filter(block => {
+                try {
+                    const selRange = document.createRange();
+                    selRange.selectNodeContents(block);
+                    return range.compareBoundaryPoints(Range.END_TO_START, selRange) < 0 &&
+                        range.compareBoundaryPoints(Range.START_TO_END, selRange) > 0;
+                } catch (e) {
+                    return false;
+                }
+            });
+
+            if (intersectingBlocks.length === 0) {
+                let node = range.commonAncestorContainer;
+                if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+                const block = node.closest('p, table, li, h1, h2, h3, h4, h5, h6') || node;
+                return [{ block: block, text: selectedText }];
+            }
+
+            return intersectingBlocks.map(block => {
+                const blockText = block.textContent;
+                if (blockText.includes(selectedText)) {
+                    return { block: block, text: selectedText };
+                }
+                return { block: block, text: blockText };
+            });
+        }
+
+        function toggleTTS() {
+            const btn = document.getElementById('ttsBtn');
+            const stopBtn = document.getElementById('ttsStopBtn');
+
+            if (isTtsPlaying) {
+                if (isTtsPaused) {
+                    window.speechSynthesis.resume();
+                    isTtsPaused = false;
+                    btn.innerHTML = '<i class="ph ph-pause"></i>';
+                } else {
+                    window.speechSynthesis.pause();
+                    isTtsPaused = true;
+                    btn.innerHTML = '<i class="ph ph-play"></i>';
+                }
+                return;
+            }
+
+            // Check if user has explicitly selected/highlighted text with their mouse
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            const range = (selection.rangeCount > 0) ? selection.getRangeAt(0) : null;
+
+            let blockItems = [];
+
+            if (selectedText && range) {
+                blockItems = getSelectedBlockItems(selection, range);
+                // Clear mouse selection so custom yellow word-highlight stands out clearly
+                selection.removeAllRanges();
+            } else {
+                // Fallback: If no text is selected, read all visible blocks on the screen
+                const allBlocks = Array.from(document.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6'))
+                    .filter(el => el.offsetParent !== null && el.innerText.trim().length > 0);
+
+                const visibleBlocks = allBlocks.filter(el => {
+                    let parent = el.parentElement;
+                    while (parent) {
+                        if (allBlocks.includes(parent)) return false;
+                        parent = parent.parentElement;
+                    }
+                    return true;
+                });
+
+                blockItems = visibleBlocks.map(b => ({ block: b, text: b.textContent }));
+            }
+
+            if (blockItems.length === 0) {
+                alert("No text visible to read!");
+                return;
+            }
+
+            // Ensure voices are loaded
+            if (!selectedTtsVoice) loadVoices();
+
+            ttsUtterances = [];
+            currentTtsIndex = 0;
+
+            let simulatedWordInterval = null;
+
+            blockItems.forEach((item, index) => {
+                const block = item.block;
+                const snippetText = item.text;
+
+                // Calculate character offset inside the block for this snippet
+                const offsetInBlock = Math.max(0, block.textContent.indexOf(snippetText));
+
+                const u = new SpeechSynthesisUtterance(snippetText);
+                if (selectedTtsVoice) u.voice = selectedTtsVoice;
+                u.rate = ttsSpeed;
+                u.pitch = 1.0;
+
+                u.onstart = () => {
+                    currentTtsIndex = index;
+
+                    // Reset previous block
+                    if (currentHighlightedBlock) {
+                        currentHighlightedBlock.classList.remove('tts-block-active');
+                        unwrapWordsInNode(currentHighlightedBlock);
+                    }
+                    if (simulatedWordInterval) {
+                        clearInterval(simulatedWordInterval);
+                    }
+
+                    currentHighlightedBlock = block;
+                    block.classList.add('tts-block-active');
+                    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Wrap words for precise highlighting
+                    wrapWordsInNode(block);
+
+                    // Fallback: simulated word-by-word highlight for voices without onboundary
+                    const wordSpans = Array.from(block.querySelectorAll('.tts-word'))
+                        .filter(s => parseInt(s.dataset.charStart) >= offsetInBlock);
+
+                    if (wordSpans.length > 0) {
+                        let wordIdx = 0;
+                        const wpm = 180 * ttsSpeed;
+                        const msPerWord = (60 / wpm) * 1000;
+
+                        block.dataset.hasNativeBoundary = 'false';
+
+                        simulatedWordInterval = setInterval(() => {
+                            if (!currentHighlightedBlock || block.dataset.hasNativeBoundary === 'true') {
+                                clearInterval(simulatedWordInterval);
+                                return;
+                            }
+
+                            block.querySelectorAll('.tts-word-active').forEach(w => w.classList.remove('tts-word-active'));
+
+                            if (wordIdx < wordSpans.length) {
+                                wordSpans[wordIdx].classList.add('tts-word-active');
+                                wordIdx++;
+                            } else {
+                                clearInterval(simulatedWordInterval);
+                            }
+                        }, msPerWord);
+                    }
+                };
+
+                u.onboundary = (e) => {
+                    if (e.name === 'word' && currentHighlightedBlock === block) {
+                        block.dataset.hasNativeBoundary = 'true';
+                        if (simulatedWordInterval) {
+                            clearInterval(simulatedWordInterval);
+                            simulatedWordInterval = null;
+                        }
+
+                        const targetCharIndex = offsetInBlock + e.charIndex;
+
+                        // Clear previous word highlight
+                        block.querySelectorAll('.tts-word-active').forEach(w => w.classList.remove('tts-word-active'));
+
+                        // Find and highlight the current word by matching targetCharIndex to data-char-start/end
+                        const wordSpans = block.querySelectorAll('.tts-word');
+                        for (const span of wordSpans) {
+                            const start = parseInt(span.dataset.charStart);
+                            const end = parseInt(span.dataset.charEnd);
+                            if (targetCharIndex >= start && targetCharIndex < end) {
+                                span.classList.add('tts-word-active');
+                                break;
+                            }
+                        }
+                    }
+                };
+
+                u.onend = () => {
+                    if (simulatedWordInterval) {
+                        clearInterval(simulatedWordInterval);
+                        simulatedWordInterval = null;
+                    }
+                    if (currentHighlightedBlock === block) {
+                        block.classList.remove('tts-block-active');
+                        unwrapWordsInNode(block);
+                        currentHighlightedBlock = null;
+                    }
+                    if (index === blockItems.length - 1) {
+                        stopTTS();
+                    }
+                };
+
+                ttsUtterances.push(u);
+            });
+
+            ttsUtterances.forEach(u => window.speechSynthesis.speak(u));
+
+            isTtsPlaying = true;
+            isTtsPaused = false;
+            btn.innerHTML = '<i class="ph ph-pause"></i>';
+            btn.classList.add('active');
+            stopBtn.style.display = 'flex';
+        }
+
+        function stopTTS() {
+            window.speechSynthesis.cancel();
+            isTtsPlaying = false;
+            isTtsPaused = false;
+
+            if (currentHighlightedBlock) {
+                currentHighlightedBlock.classList.remove('tts-block-active');
+                unwrapWordsInNode(currentHighlightedBlock);
+                currentHighlightedBlock = null;
+            }
+
+            const btn = document.getElementById('ttsBtn');
+            btn.innerHTML = '<i class="ph ph-speaker-high"></i>';
+            btn.classList.remove('active');
+            document.getElementById('ttsStopBtn').style.display = 'none';
+        }
+
+        // Initialize voices
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => { console.log("Voices loaded."); };
+        }
+
+        /**
+         * Navigation Pane (TOC) & Filtering Logic
+         */
+        function buildNavigationPane() {
+            selectedHeadingIndices.clear();
+            updateFilterStatusText();
+
+            const container = document.getElementById('documentContainer');
+            const allParagraphs = Array.from(container.querySelectorAll('p, h1, h2, h3, h4, h5, h6'));
+
+            headings = [];
+            let headingCounter = 0;
+            const candidateHeadings = [];
+
+            // Common sentence verbs to filter out false headings (body paragraphs)
+            const sentenceVerbs = [' is ', ' are ', ' was ', ' were ', ' has been ', ' have been ', ' became ', ' appointed ', ' replaces ', ' replacing ', ' served '];
+            // Category keywords that indicate level 2 sub-sections
+            const subCategoryKeywords = ['national', 'international', 'state level', 'defense', 'security', 'corporate', 'ambassadorial', 'judicial', 'category', 'part ', 'section '];
+
+            allParagraphs.forEach((el, index) => {
+                const text = el.innerText ? el.innerText.trim() : '';
+                if (!text || text.length > 100) return; // Skip empty or long sentence paragraphs
+
+                // Filter out sentences with colons, periods, or verbs
+                if (text.includes(': ') || text.includes(' : ') || text.endsWith('.')) return;
+                const textLower = ' ' + text.toLowerCase() + ' ';
+                if (sentenceVerbs.some(verb => textLower.includes(verb))) return;
+
+                const tagName = el.tagName.toLowerCase();
+                const className = el.className || '';
+                const style = window.getComputedStyle(el);
+
+                let isBold = style.fontWeight >= 600 || style.fontWeight === 'bold';
+                let fontSizePx = parseFloat(style.fontSize) || 12;
+
+                const children = el.querySelectorAll('*');
+                if (!isBold && children.length > 0) {
+                    for (let child of children) {
+                        const childStyle = window.getComputedStyle(child);
+                        if (parseInt(childStyle.fontWeight) >= 600 || childStyle.fontWeight === 'bold') {
+                            isBold = true;
+                        }
+                        const cSize = parseFloat(childStyle.fontSize);
+                        if (cSize > fontSizePx) {
+                            fontSizePx = cSize;
+                        }
+                    }
+                }
+
+                let explicitLevel = null;
+                if (tagName.match(/^h[1-6]$/)) {
+                    explicitLevel = parseInt(tagName.charAt(1));
+                } else {
+                    const match = className.match(/heading[_-]?([1-6])/i);
+                    if (match) {
+                        explicitLevel = parseInt(match[1]);
+                    } else if (/title/i.test(className)) {
+                        explicitLevel = 1;
+                    } else if (/subtitle/i.test(className)) {
+                        explicitLevel = 2;
+                    }
+                }
+
+                if (isBold || explicitLevel !== null) {
+                    candidateHeadings.push({
+                        el,
+                        text,
+                        index,
+                        explicitLevel,
+                        fontSizePx,
+                        isCategoryKeyword: subCategoryKeywords.some(kw => textLower.includes(kw))
+                    });
+                }
+
+                el.dataset.domIndex = index;
+            });
+
+            if (candidateHeadings.length === 0) {
+                headings = [];
+                renderTOC();
+                return;
+            }
+
+            // Collect distinct font sizes for dynamic ranking
+            const distinctFontSizes = Array.from(new Set(candidateHeadings.map(c => c.fontSizePx)))
+                .sort((a, b) => b - a);
+
+            candidateHeadings.forEach((c) => {
+                let level = 1;
+
+                if (c.explicitLevel !== null) {
+                    level = c.explicitLevel;
+                } else if (distinctFontSizes.length > 1) {
+                    // Assign level based on font size rank
+                    const fontRank = distinctFontSizes.indexOf(c.fontSizePx);
+                    level = fontRank + 1;
+                } else {
+                    // All candidate headings have identical font size!
+                    // If it's a category keyword and we already have a previous Level 1 heading, make it Level 2
+                    if (c.isCategoryKeyword && headings.length > 0) {
+                        level = 2;
+                    } else {
+                        level = 1;
+                    }
+                }
+
+                c.el.dataset.headingId = `heading-${headingCounter}`;
+                c.el.dataset.headingLevel = level;
+
+                headings.push({
+                    id: `heading-${headingCounter}`,
+                    element: c.el,
+                    level: Math.max(1, level), // Infinite levels supported (L1, L2, L3, L4, L5...)
+                    title: c.text,
+                    domIndex: c.index
+                });
+                headingCounter++;
+            });
+
+            renderTOC();
+        }
+
+        function renderTOC() {
+            const tocList = document.getElementById('tocList');
+            tocList.innerHTML = '';
+
+            if (headings.length === 0) {
+                tocList.innerHTML = `<div style="padding: 16px; color: var(--text-muted); font-size: 13px;">No headings found in document.</div>`;
+                return;
+            }
+
+            // Build a hierarchical tree (handles arbitrary depth)
+            const tree = [];
+            const stack = [];
+
+            headings.forEach((heading, idx) => {
+                const node = { ...heading, arrayIndex: idx, children: [] };
+
+                while (stack.length > 0 && stack[stack.length - 1].level >= heading.level) {
+                    stack.pop();
+                }
+
+                if (stack.length === 0) {
+                    tree.push(node);
+                } else {
+                    stack[stack.length - 1].children.push(node);
+                }
+
+                stack.push(node);
+            });
+
+            function buildHtml(nodes) {
+                let html = '';
+                nodes.forEach(node => {
+                    const hasChildren = node.children.length > 0;
+                    const iconHtml = hasChildren
+                        ? `<div class="toc-icon" onclick="toggleTocNode(event, this)"><i class="ph-bold ph-caret-right"></i></div>`
+                        : `<div class="toc-icon" style="opacity: 0.5;"><i class="ph-bold ph-dot-outline" style="font-size: 12px;"></i></div>`;
+
+                    let itemStyle = 'font-size: 12px; font-weight: 400; color: var(--text-muted);';
+                    if (node.level === 1) {
+                        itemStyle = 'font-size: 14px; font-weight: 700; color: var(--text-main);';
+                    } else if (node.level === 2) {
+                        itemStyle = 'font-size: 13px; font-weight: 600; color: var(--text-main);';
+                    } else if (node.level === 3) {
+                        itemStyle = 'font-size: 12.5px; font-weight: 500; color: var(--text-main);';
+                    }
+
+                    html += `
+                        <li class="toc-item-wrapper" style="margin-bottom: 2px;">
+                            <div class="toc-item level-${node.level}" id="toc-node-${node.arrayIndex}" style="display: flex; align-items: center; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease;">
+                                ${iconHtml}
+                                <span class="toc-text" onclick="filterToHeading(${node.arrayIndex})" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${itemStyle}">${node.title}</span>
+                            </div>
+                            ${hasChildren ? `<ul class="toc-sublist" style="display: none; list-style: none; padding-left: 14px; margin-left: 10px; border-left: 1.5px dashed rgba(148, 163, 184, 0.4); margin-top: 2px; margin-bottom: 2px;">${buildHtml(node.children)}</ul>` : ''}
+                        </li>
+                    `;
+                });
+                return html;
+            }
+
+            tocList.innerHTML = buildHtml(tree);
+        }
+
+        function toggleTocNode(event, iconContainer) {
+            event.stopPropagation();
+            const icon = iconContainer.querySelector('i');
+            const wrapper = iconContainer.closest('.toc-item-wrapper');
+            const sublist = wrapper ? wrapper.querySelector(':scope > .toc-sublist') : null;
+
+            if (!icon) return;
+
+            const isExpanded = icon.classList.contains('ph-caret-down');
+
+            if (isExpanded) {
+                // Collapse
+                icon.className = 'ph-bold ph-caret-right';
+                if (sublist) {
+                    sublist.style.maxHeight = '0px';
+                    sublist.style.opacity = '0';
+                    sublist.style.overflow = 'hidden';
+                    setTimeout(() => { sublist.style.display = 'none'; }, 200);
+                }
+            } else {
+                // Expand
+                icon.className = 'ph-bold ph-caret-down';
+                if (sublist) {
+                    sublist.style.display = 'block';
+                    sublist.style.overflow = 'hidden';
+                    sublist.style.maxHeight = '0px';
+                    sublist.style.opacity = '0';
+                    // Trigger reflow then animate
+                    requestAnimationFrame(() => {
+                        sublist.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+                        sublist.style.maxHeight = sublist.scrollHeight + 'px';
+                        sublist.style.opacity = '1';
+                        // Clean up after animation
+                        setTimeout(() => {
+                            sublist.style.maxHeight = 'none';
+                            sublist.style.overflow = 'visible';
+                            sublist.style.transition = '';
+                        }, 300);
+                    });
+                }
+            }
+        }
+
+        function resetFilter() {
+            selectedHeadingIndices.clear();
+            openFilterNodes.clear();
+            updateFilterStatusText();
+
+            // Show all elements
+            const container = document.getElementById('documentContainer');
+            if (container) {
+                const allElements = container.querySelectorAll('*');
+                allElements.forEach(el => el.classList.remove('hidden-node'));
+            }
+
+            // Remove active from TOC
+            document.querySelectorAll('.toc-item').forEach(el => el.classList.remove('active'));
+
+            const menu = document.getElementById('filterDropdownMenu');
+            if (menu && menu.classList.contains('active')) {
+                renderHeadingFilterList();
+            }
+        }
+
+        /**
+         * Heading Filter Dropdown & Collapsible Multi-Select Logic
+         */
+        function toggleFilterDropdown(forceState) {
+            const menu = document.getElementById('filterDropdownMenu');
+            const caret = document.getElementById('filterDropdownCaret');
+            if (!menu) return;
+
+            let isOpening;
+            if (typeof forceState === 'boolean') {
+                isOpening = forceState;
+            } else {
+                isOpening = !menu.classList.contains('active');
+            }
+
+            if (isOpening) {
+                menu.classList.add('active');
+                if (caret) caret.style.transform = 'rotate(180deg)';
+                renderHeadingFilterList();
+            } else {
+                menu.classList.remove('active');
+                if (caret) caret.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Close filter dropdown popover on outside click
+        document.addEventListener('click', (e) => {
+            const dropdownGroup = document.getElementById('filterDropdownGroup');
+            if (dropdownGroup && !dropdownGroup.contains(e.target)) {
+                toggleFilterDropdown(false);
+            }
+        });
+
+        function renderHeadingFilterList(filterQuery = '') {
+            const container = document.getElementById('headingFilterList');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (!headings || headings.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+                        <i class="ph ph-list-checks" style="font-size: 36px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px; font-weight: 500;">No headings found in this document.</p>
+                        <p style="font-size: 11px; margin-top: 4px; color: var(--text-muted);">Upload a Word document to filter by headings.</p>
+                    </div>
+                `;
+                updateFilterStatusText();
+                return;
+            }
+
+            const query = (filterQuery || '').toLowerCase().trim();
+
+            // Build hierarchical tree structure
+            const tree = [];
+            const stack = [];
+
+            headings.forEach((heading, idx) => {
+                const node = { heading, idx, children: [] };
+                while (stack.length > 0 && stack[stack.length - 1].heading.level >= heading.level) {
+                    stack.pop();
+                }
+                if (stack.length === 0) {
+                    tree.push(node);
+                } else {
+                    stack[stack.length - 1].children.push(node);
+                }
+                stack.push(node);
+            });
+
+            function renderNodes(nodes) {
+                let html = '';
+                nodes.forEach(node => {
+                    if (query && !node.heading.title.toLowerCase().includes(query)) {
+                        const hasMatchingChild = (n) => n.heading.title.toLowerCase().includes(query) || n.children.some(hasMatchingChild);
+                        if (!hasMatchingChild(node)) return;
+                    }
+
+                    const hasChildren = node.children.length > 0;
+                    const isChecked = selectedHeadingIndices.has(node.idx);
+                    const isExpanded = openFilterNodes.has(node.idx);
+
+                    let badgeClass = 'l3';
+                    if (node.heading.level === 1) badgeClass = 'l1';
+                    else if (node.heading.level === 2) badgeClass = 'l2';
+
+                    const chevronHtml = hasChildren
+                        ? `<span class="chevron-toggle ${isExpanded ? 'expanded' : ''}" onclick="toggleHeadingCollapse(${node.idx}, event)"><i class="ph-bold ph-caret-right"></i></span>`
+                        : `<span class="chevron-spacer"></span>`;
+
+                    html += `
+                        <div class="filter-tree-node">
+                            <div class="filter-tree-row" onclick="if(event.target.tagName !== 'INPUT' && !event.target.closest('.chevron-toggle')) toggleHeadingSelection(${node.idx}, event)">
+                                ${chevronHtml}
+                                <input type="checkbox" id="chk-heading-${node.idx}" ${isChecked ? 'checked' : ''} onchange="toggleHeadingSelection(${node.idx}, event)">
+                                <span class="level-badge ${badgeClass}">H${node.heading.level}</span>
+                                <span class="filter-tree-text" title="${node.heading.title}">${node.heading.title}</span>
+                            </div>
+                            ${hasChildren ? `
+                                <div class="filter-tree-children ${isExpanded ? 'expanded' : ''}" id="children-heading-${node.idx}">
+                                    ${renderNodes(node.children)}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                return html;
+            }
+
+            const treeHtml = renderNodes(tree);
+            if (!treeHtml) {
+                container.innerHTML = `<div style="text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 13px;">No headings match "${filterQuery}"</div>`;
+            } else {
+                container.innerHTML = treeHtml;
+            }
+
+            updateFilterStatusText();
+        }
+
+        function toggleHeadingCollapse(idx, event) {
+            if (event) event.stopPropagation();
+
+            const childrenContainer = document.getElementById(`children-heading-${idx}`);
+            if (!childrenContainer) return;
+
+            const row = childrenContainer.previousElementSibling;
+            const chevron = row ? row.querySelector('.chevron-toggle') : null;
+
+            if (openFilterNodes.has(idx)) {
+                openFilterNodes.delete(idx);
+                childrenContainer.style.display = 'none';
+                childrenContainer.classList.remove('expanded');
+                if (chevron) chevron.classList.remove('expanded');
+            } else {
+                openFilterNodes.add(idx);
+                childrenContainer.style.display = 'block';
+                childrenContainer.classList.add('expanded');
+                if (chevron) chevron.classList.add('expanded');
+            }
+        }
+
+        function expandAllFilterNodes(expand = true) {
+            if (expand) {
+                headings.forEach((_, idx) => openFilterNodes.add(idx));
+            } else {
+                openFilterNodes.clear();
+            }
+            const searchInput = document.getElementById('headingSearchInput');
+            renderHeadingFilterList(searchInput ? searchInput.value : '');
+        }
+
+        function toggleHeadingSelection(idx, event) {
+            if (event) event.stopPropagation();
+
+            const isCurrentlyChecked = selectedHeadingIndices.has(idx);
+            const targetHeading = headings[idx];
+
+            // Collect child sub-headings under this heading
+            const childIndices = [];
+            if (targetHeading) {
+                for (let i = idx + 1; i < headings.length; i++) {
+                    if (headings[i].level > targetHeading.level) {
+                        childIndices.push(i);
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            if (isCurrentlyChecked) {
+                selectedHeadingIndices.delete(idx);
+                childIndices.forEach(childIdx => selectedHeadingIndices.delete(childIdx));
+            } else {
+                selectedHeadingIndices.add(idx);
+                childIndices.forEach(childIdx => selectedHeadingIndices.add(childIdx));
+            }
+
+            const searchInput = document.getElementById('headingSearchInput');
+            renderHeadingFilterList(searchInput ? searchInput.value : '');
+            applyHeadingFilter();
+        }
+
+        function selectAllHeadings(select = true) {
+            if (select) {
+                headings.forEach((_, idx) => selectedHeadingIndices.add(idx));
+            } else {
+                selectedHeadingIndices.clear();
+            }
+            const searchInput = document.getElementById('headingSearchInput');
+            renderHeadingFilterList(searchInput ? searchInput.value : '');
+            applyHeadingFilter();
+        }
+
+        function filterHeadingTreeList() {
+            const query = document.getElementById('headingSearchInput').value;
+            renderHeadingFilterList(query);
+        }
+
+        function updateFilterStatusText() {
+            const statusText = document.getElementById('filterStatusText');
+            const badge = document.getElementById('activeFilterBadge');
+
+            const count = selectedHeadingIndices.size;
+            const total = headings.length;
+
+            if (count === 0 || count === total) {
+                if (statusText) statusText.innerText = "All headings & content visible";
+                if (badge) {
+                    badge.style.display = 'none';
+                }
+            } else {
+                if (statusText) statusText.innerText = `${count} of ${total} heading section(s) visible`;
+                if (badge) {
+                    badge.style.display = 'inline-block';
+                    badge.innerText = `${count}`;
+                }
+            }
+        }
+
+        function applyHeadingFilter() {
+            updateFilterStatusText();
+
+            const container = document.getElementById('documentContainer');
+            if (!container) return;
+
+            const incHeading = document.getElementById('chkHeading') ? document.getElementById('chkHeading').checked : true;
+            const incSubHeading = document.getElementById('chkSubHeading') ? document.getElementById('chkSubHeading').checked : true;
+            const incLowerSubHeading = document.getElementById('chkLowerSubHeading') ? document.getElementById('chkLowerSubHeading').checked : true;
+            const incPoints = document.getElementById('chkPoints') ? document.getElementById('chkPoints').checked : true;
+
+            if (selectedHeadingIndices.size === 0 || selectedHeadingIndices.size === headings.length) {
+                const allBlocks = container.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6');
+                allBlocks.forEach(b => b.classList.remove('hidden-node'));
+
+                const pages = container.querySelectorAll('section.docx, .docx-wrapper > section');
+                pages.forEach(page => page.classList.remove('hidden-node'));
+
+                document.querySelectorAll('.toc-item').forEach(el => el.classList.remove('active'));
+                return;
+            }
+
+            // Collect ranges for checked headings
+            const ranges = [];
+            selectedHeadingIndices.forEach(idx => {
+                const h = headings[idx];
+                if (!h) return;
+                const startDomIndex = parseInt(h.element.dataset.domIndex);
+
+                let endDomIndex = Infinity;
+                for (let i = idx + 1; i < headings.length; i++) {
+                    if (headings[i].level <= h.level) {
+                        endDomIndex = parseInt(headings[i].element.dataset.domIndex);
+                        break;
+                    }
+                }
+                ranges.push({ start: startDomIndex, end: endDomIndex });
+            });
+
+            const allBlocks = Array.from(container.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6'));
+
+            allBlocks.forEach(block => {
+                if (block.dataset.domIndex === undefined) return;
+                const bIdx = parseInt(block.dataset.domIndex);
+                const inRange = ranges.some(r => bIdx >= r.start && bIdx < r.end);
+
+                if (!inRange) {
+                    block.classList.add('hidden-node');
+                    return;
+                }
+
+                // Check type filtering within selected range
+                const matchingHeading = headings.find(h => h.domIndex === bIdx);
+                let shouldShow = false;
+
+                if (matchingHeading) {
+                    if (matchingHeading.level === 1 && incHeading) shouldShow = true;
+                    else if (matchingHeading.level === 2 && incSubHeading) shouldShow = true;
+                    else if (matchingHeading.level >= 3 && incLowerSubHeading) shouldShow = true;
+                } else {
+                    if (incPoints) shouldShow = true;
+                }
+
+                if (shouldShow) {
+                    block.classList.remove('hidden-node');
+                } else {
+                    block.classList.add('hidden-node');
+                }
+            });
+
+            // Hide empty docx pages strictly so unselected content is completely gone
+            const pages = container.querySelectorAll('section.docx, .docx-wrapper > section');
+            pages.forEach(page => {
+                const visibleChildren = Array.from(page.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6'))
+                    .filter(child => !child.classList.contains('hidden-node'));
+                if (visibleChildren.length === 0) {
+                    page.classList.add('hidden-node');
+                } else {
+                    page.classList.remove('hidden-node');
+                }
+            });
+
+            // Highlight active TOC nodes
+            document.querySelectorAll('.toc-item').forEach(el => {
+                const nodeIdxStr = el.id.replace('toc-node-', '');
+                const nodeIdx = parseInt(nodeIdxStr);
+                if (!isNaN(nodeIdx) && selectedHeadingIndices.has(nodeIdx)) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+
+        function resetHeadingFilterAndClose() {
+            selectedHeadingIndices.clear();
+            resetFilter();
+            toggleFilterDropdown(false);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                toggleFilterDropdown(false);
+            }
+        });
+
+        function toggleMobileSidebar(forceState) {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            let isOpening;
+            if (typeof forceState === 'boolean') {
+                isOpening = forceState;
+            } else {
+                isOpening = !sidebar.classList.contains('mobile-open');
+            }
+
+            if (isOpening) {
+                sidebar.classList.add('mobile-open');
+                if (overlay) overlay.classList.add('active');
+            } else {
+                sidebar.classList.remove('mobile-open');
+                if (overlay) overlay.classList.remove('active');
+            }
+        }
+
+        function filterToHeading(headingIndex) {
+            const targetHeading = headings[headingIndex];
+            if (!targetHeading) return;
+
+            // Auto-close sidebar menu on mobile after choosing a heading
+            if (window.innerWidth <= 768) {
+                toggleMobileSidebar(false);
+            }
+
+            // Highlight active in TOC using accurate IDs
+            document.querySelectorAll('.toc-item').forEach(el => {
+                if (el.id === `toc-node-${headingIndex}`) {
+                    el.classList.add('active');
+                    // Auto-expand sublist if collapsed
+                    const wrapper = el.closest('.toc-item-wrapper');
+                    const sublist = wrapper ? wrapper.querySelector(':scope > .toc-sublist') : null;
+                    const icon = el.querySelector('.toc-icon i');
+                    if (sublist && icon && icon.classList.contains('ph-caret-right')) {
+                        toggleTocNode({ stopPropagation: () => { } }, el.querySelector('.toc-icon'));
+                    }
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+
+            // Filtering logic:
+            // Hide everything that is NOT between `targetHeading` and the NEXT heading of the same or higher priority (level <= targetHeading.level).
+            let endDomIndex = Infinity;
+            for (let i = headingIndex + 1; i < headings.length; i++) {
+                if (headings[i].level <= targetHeading.level) {
+                    endDomIndex = parseInt(headings[i].element.dataset.domIndex);
+                    break;
+                }
+            }
+
+            const startDomIndex = parseInt(targetHeading.element.dataset.domIndex);
+
+            // Hide/Show logic for all elements in document
+            const container = document.getElementById('documentContainer');
+            const allBlocks = Array.from(container.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6'));
+
+            allBlocks.forEach(block => {
+                if (block.dataset.domIndex === undefined) return;
+                const idx = parseInt(block.dataset.domIndex);
+                if (idx >= startDomIndex && idx < endDomIndex) {
+                    block.classList.remove('hidden-node');
+                } else {
+                    block.classList.add('hidden-node');
+                }
+            });
+
+            // Hide empty docx page wrappers so empty pages don't leave giant blank white gaps
+            const pages = container.querySelectorAll('section.docx, .docx-wrapper > section');
+            pages.forEach(page => {
+                const visibleChildren = Array.from(page.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6'))
+                    .filter(child => !child.classList.contains('hidden-node'));
+                if (visibleChildren.length === 0) {
+                    page.classList.add('hidden-node');
+                } else {
+                    page.classList.remove('hidden-node');
+                }
+            });
+
+            // Scroll directly to the active heading element
+            setTimeout(() => {
+                targetHeading.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+        }
+
+        function highlightTextNodes(element, query) {
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+            const nodesToReplace = [];
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.nodeValue.toLowerCase().includes(query)) {
+                    nodesToReplace.push(node);
+                }
+            }
+
+            nodesToReplace.forEach(textNode => {
+                const regex = new RegExp(`(${query})`, 'gi');
+                const fragment = document.createDocumentFragment();
+                let lastIndex = 0;
+                let match;
+                while ((match = regex.exec(textNode.nodeValue)) !== null) {
+                    if (match.index > lastIndex) {
+                        fragment.appendChild(document.createTextNode(textNode.nodeValue.substring(lastIndex, match.index)));
+                    }
+                    const mark = document.createElement('mark');
+                    mark.textContent = match[0];
+                    fragment.appendChild(mark);
+                    lastIndex = regex.lastIndex;
+                }
+                if (lastIndex < textNode.nodeValue.length) {
+                    fragment.appendChild(document.createTextNode(textNode.nodeValue.substring(lastIndex)));
+                }
+                textNode.parentNode.replaceChild(fragment, textNode);
+            });
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const container = document.getElementById('documentContainer');
+            const searchView = document.getElementById('searchResultsView');
+            const searchList = document.getElementById('searchResultsList');
+
+            const incHeading = document.getElementById('chkHeading').checked;
+            const incSubHeading = document.getElementById('chkSubHeading').checked;
+            const incLowerSubHeading = document.getElementById('chkLowerSubHeading').checked;
+            const incPoints = document.getElementById('chkPoints').checked;
+
+            if (query.length < 3) {
+                if (headings.length > 0) resetFilter();
+                container.style.display = 'flex';
+                searchView.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'none';
+            searchView.style.display = 'flex';
+            searchList.innerHTML = '';
+
+            document.querySelectorAll('.toc-item').forEach(el => el.classList.remove('active'));
+
+            // Include li elements for bullet points!
+            const allBlocks = Array.from(container.querySelectorAll('p, table, li, h1, h2, h3, h4, h5, h6'));
+            let matchCount = 0;
+            let skipUntilIdx = -1;
+
+            allBlocks.forEach((block, idx) => {
+                if (idx < skipUntilIdx) return;
+
+                const text = block.innerText;
+                if (!text) return;
+
+                if (text.toLowerCase().includes(query)) {
+                    matchCount++;
+
+                    const resEl = document.createElement('div');
+                    resEl.className = 'search-result-item';
+
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'search-result-text';
+
+                    // Always try to find the parent heading for this block
+                    let targetHeading = null;
+                    for (let i = headings.length - 1; i >= 0; i--) {
+                        if (headings[i].domIndex <= parseInt(block.dataset.domIndex)) {
+                            targetHeading = headings[i];
+                            break;
+                        }
+                    }
+
+                    // If we have a heading and want to show the section context
+                    if (targetHeading) {
+                        // Find end index for this section
+                        let endDomIndex = Infinity;
+                        for (let i = 0; i < headings.length; i++) {
+                            if (headings[i].domIndex > targetHeading.domIndex && headings[i].level <= targetHeading.level) {
+                                endDomIndex = headings[i].domIndex;
+                                break;
+                            }
+                        }
+
+                        // Find where this section starts in allBlocks
+                        let startArrIdx = 0;
+                        for (let j = 0; j < allBlocks.length; j++) {
+                            if (parseInt(allBlocks[j].dataset.domIndex) >= targetHeading.domIndex) {
+                                startArrIdx = j;
+                                break;
+                            }
+                        }
+
+                        for (let j = startArrIdx; j < allBlocks.length; j++) {
+                            const bIdx = parseInt(allBlocks[j].dataset.domIndex);
+                            if (bIdx >= endDomIndex) {
+                                skipUntilIdx = j;
+                                break;
+                            }
+
+                            // Determine block type to check against user tick points
+                            const childHeadingMatch = headings.find(h => h.domIndex === bIdx);
+                            let shouldInclude = false;
+
+                            if (childHeadingMatch) {
+                                if (childHeadingMatch.level === 1 && incHeading) shouldInclude = true;
+                                else if (childHeadingMatch.level === 2 && incSubHeading) shouldInclude = true;
+                                else if (childHeadingMatch.level >= 3 && incLowerSubHeading) shouldInclude = true;
+                            } else {
+                                if (incPoints) shouldInclude = true;
+                            }
+
+                            if (shouldInclude) {
+                                const clonedBlock = allBlocks[j].cloneNode(true);
+                                highlightTextNodes(clonedBlock, query);
+                                textDiv.appendChild(clonedBlock);
+                            }
+
+                            if (j === allBlocks.length - 1) skipUntilIdx = allBlocks.length;
+                        }
+                    } else {
+                        // Normal single block fallback if no heading found
+                        const clonedBlock = block.cloneNode(true);
+                        highlightTextNodes(clonedBlock, query);
+                        textDiv.appendChild(clonedBlock);
+                    }
+
+                    const metaDiv = document.createElement('div');
+                    metaDiv.style.cssText = "font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;";
+                    metaDiv.innerHTML = `<i class="ph-fill ph-folder-notch"></i> ${targetHeading ? targetHeading.title : 'Document'}`;
+
+                    resEl.appendChild(metaDiv);
+                    resEl.appendChild(textDiv);
+
+                    resEl.onclick = () => {
+                        document.getElementById('searchInput').value = '';
+                        container.style.display = 'flex';
+                        searchView.style.display = 'none';
+
+                        resetFilter();
+
+                        block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        const oldBg = block.style.backgroundColor;
+                        block.style.backgroundColor = 'rgba(250, 204, 21, 0.4)';
+                        block.style.transition = 'background-color 0.5s ease';
+                        setTimeout(() => { block.style.backgroundColor = oldBg; }, 2000);
+                    };
+
+                    searchList.appendChild(resEl);
+                }
+            });
+
+            document.getElementById('searchCount').innerText = `${matchCount} section(s) found`;
+
+            if (matchCount === 0) {
+                searchList.innerHTML = `
+                    <div style="text-align: center; padding: 64px 24px; color: var(--text-muted);">
+                        <i class="ph ph-magnifying-glass" style="font-size: 64px; color: var(--border-color); margin-bottom: 16px;"></i>
+                        <h3>No matches found</h3>
+                        <p style="margin-top: 8px;">Try searching for a different keyword.</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+
+</html>
