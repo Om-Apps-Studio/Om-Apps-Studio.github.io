@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MathVault - Modern Math Notes & Question Bank</title>
+  <meta name="description" content="A bright, compact, mobile-friendly Math Question Bank, Chapter-wise Math Explorer, and Notes repository with dynamic Formula Quiz Generator and offline storage.">
+  <meta name="theme-color" content="#4f46e5">
+
+  <!-- Google Fonts: Inter, Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- KaTeX CSS & JS for Ultra-Fast Math Formula Rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+
+  <!-- Marked.js for Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Canvas Confetti for Quiz Celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body data-theme="light" class="compact-mode">
+
+  <!-- Background Subtle Ambient Glow -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-square-root-variable"></i>
+        </div>
+        <div class="brand-info">
+          <h1>MathVault</h1>
+          <span class="brand-subtitle">Question Bank & Formula Notes</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs Wrapper with Smooth Scroll -->
+      <div class="nav-tabs-wrapper">
+        <button class="nav-scroll-btn nav-scroll-left" id="navScrollLeft" title="Scroll left" aria-label="Scroll left">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <nav class="nav-tabs" id="navTabsContainer" role="tablist">
+          <button class="nav-tab active" data-tab="bank" role="tab" aria-selected="true" title="Question Bank">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Questions</span>
+            <span class="badge" id="totalCountBadge">0</span>
+          </button>
+          <button class="nav-tab" data-tab="chapters" role="tab" aria-selected="false" title="Chapter-Wise Math Reader">
+            <i class="fa-solid fa-book-open"></i>
+            <span>Chapters</span>
+          </button>
+          <button class="nav-tab" data-tab="generator" role="tab" aria-selected="false" title="Dynamic Formula MCQ Generator">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Formula Quiz</span>
+          </button>
+          <button class="nav-tab" data-tab="speed_calc" role="tab" aria-selected="false" title="Speed Calculation & Mental Math Lab">
+            <i class="fa-solid fa-bolt" style="color:var(--accent-amber);"></i>
+            <span>Speed Lab</span>
+          </button>
+          <button class="nav-tab" data-tab="practice" role="tab" aria-selected="false" title="Practice / Quiz Mode">
+            <i class="fa-solid fa-stopwatch-20"></i>
+            <span>Practice</span>
+          </button>
+          <button class="nav-tab" data-tab="flashcards" role="tab" aria-selected="false" title="Spaced Repetition Flashcards">
+            <i class="fa-solid fa-clone"></i>
+            <span>Flashcards</span>
+          </button>
+          <button class="nav-tab" data-tab="sandbox" role="tab" aria-selected="false" title="LaTeX Formula Sandbox">
+            <i class="fa-solid fa-flask"></i>
+            <span>Sandbox</span>
+          </button>
+          <button class="nav-tab" data-tab="formulas" role="tab" aria-selected="false" title="Formula Notes & Cheatsheet">
+            <i class="fa-solid fa-book-bookmark"></i>
+            <span>Formulas</span>
+          </button>
+          <button class="nav-tab" data-tab="stats" role="tab" aria-selected="false" title="Analytics & Progress">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Stats</span>
+          </button>
+        </nav>
+        <button class="nav-scroll-btn nav-scroll-right" id="navScrollRight" title="Scroll right" aria-label="Scroll right">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        <button class="btn btn-accent btn-sm" id="btnOpenAIImport" title="Import from ChatGPT or Gemini">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span class="btn-text">AI Import</span>
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnOpenAddQuestion" title="Add New Math Question">
+          <i class="fa-solid fa-plus"></i>
+          <span class="btn-text">Add Question</span>
+        </button>
+        <button class="btn btn-secondary icon-only" id="btnToggleGridLayout" title="Toggle 1-Column / 2-Column Grid">
+          <i class="fa-solid fa-table-cells" id="gridIcon"></i>
+        </button>
+        <button class="btn btn-secondary icon-only" id="btnOpenDataModal" title="Backup & Restore Data">
+          <i class="fa-solid fa-database"></i>
+        </button>
+        <button class="btn btn-secondary icon-only" id="btnToggleTheme" title="Toggle Bright / Dark Theme">
+          <i class="fa-solid fa-sun" id="themeIcon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <main class="main-content">
+
+    <!-- ==================== TAB 1: QUESTION BANK ==================== -->
+    <section class="tab-pane active" id="pane-bank">
+      
+      <!-- Advanced Search & Filter Dashboard -->
+      <div class="search-filter-card">
+        <div class="search-bar-row">
+          <div class="search-input-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Search math questions, LaTeX, topics (e.g. \int, King's rule)..." autocomplete="off">
+            <button class="clear-search-btn" id="btnClearSearch" title="Clear Search" style="display:none;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <button class="btn btn-secondary filter-toggle-btn btn-sm" id="btnToggleAdvancedFilters">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Filters</span>
+            <span class="filter-count-badge" id="activeFilterCount" style="display:none;">0</span>
+          </button>
+        </div>
+
+        <!-- Quick Status Pills -->
+        <div class="quick-status-pills">
+          <button class="status-pill active" data-status="all">All</button>
+          <button class="status-pill" data-status="bookmarked"><i class="fa-solid fa-star"></i> Bookmarked</button>
+          <button class="status-pill" data-status="pyq"><i class="fa-solid fa-graduation-cap"></i> PYQs</button>
+          <button class="status-pill" data-status="revision"><i class="fa-solid fa-rotate-right"></i> Needs Revision</button>
+          <button class="status-pill" data-status="mastered"><i class="fa-solid fa-circle-check"></i> Mastered</button>
+          <button class="status-pill" data-status="with_images"><i class="fa-solid fa-image"></i> Diagrams</button>
+        </div>
+
+        <!-- Expandable Advanced Filters Drawer -->
+        <div class="advanced-filters-panel" id="advancedFiltersPanel">
+          <div class="filters-grid">
+            
+            <div class="filter-group">
+              <label for="filterChapter"><i class="fa-solid fa-folder-open"></i> Chapter</label>
+              <select id="filterChapter">
+                <option value="all">All Chapters</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filterDifficulty"><i class="fa-solid fa-gauge-high"></i> Difficulty</label>
+              <select id="filterDifficulty">
+                <option value="all">All Difficulties</option>
+                <option value="Easy">🟢 Easy</option>
+                <option value="Medium">🟡 Medium</option>
+                <option value="Hard">🔴 Hard</option>
+                <option value="Challenger">🟣 Challenger</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filterExam"><i class="fa-solid fa-award"></i> Exam</label>
+              <select id="filterExam">
+                <option value="all">All Exams</option>
+                <option value="JEE Main">JEE Main</option>
+                <option value="JEE Advanced">JEE Advanced</option>
+                <option value="NDA">NDA</option>
+                <option value="CBSE 12th">CBSE 12th</option>
+                <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filterYear"><i class="fa-regular fa-calendar"></i> Year</label>
+              <select id="filterYear">
+                <option value="all">All Years</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+                <option value="earlier">2021 & Earlier</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filterType"><i class="fa-solid fa-list-check"></i> Type</label>
+              <select id="filterType">
+                <option value="all">All Types</option>
+                <option value="mcq_single">Single MCQ</option>
+                <option value="mcq_multi">Multi MCQ</option>
+                <option value="numerical">Numerical</option>
+                <option value="subjective">Proof / Note</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="sortBy"><i class="fa-solid fa-arrow-down-short-wide"></i> Sort</label>
+              <select id="sortBy">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="year_desc">Year (Latest)</option>
+                <option value="diff_desc">Difficulty (Hard → Easy)</option>
+                <option value="diff_asc">Difficulty (Easy → Hard)</option>
+                <option value="title_asc">Title (A → Z)</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="filter-actions-row">
+            <span class="active-summary-text" id="filterSummaryText">Showing all questions</span>
+            <div class="filter-btn-group">
+              <button class="btn btn-text btn-sm" id="btnResetFilters">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btnExportMarkdown" title="Export as Markdown for Obsidian & Notion">
+                <i class="fa-brands fa-markdown"></i> Export .MD
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btnPrintQuestionSet" title="Print or Save as PDF">
+                <i class="fa-solid fa-print"></i> Print / PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Question Cards Grid Container -->
+      <div class="questions-container grid-layout" id="questionsContainer"></div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-state-icon">
+          <i class="fa-solid fa-magnifying-glass-chart"></i>
+        </div>
+        <h3>No Math Questions Found</h3>
+        <p>No questions matched your search criteria. Try changing filters or add a new question!</p>
+        <div class="empty-state-actions">
+          <button class="btn btn-secondary btn-sm" onclick="app.resetFilters()">Clear Filters</button>
+          <button class="btn btn-accent btn-sm" onclick="app.openAIImportModal()">AI Smart Import</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== TAB 2: CHAPTER-WISE HORIZONTAL TABBED EXPLORER ==================== -->
+    <section class="tab-pane" id="pane-chapters" style="display:none;">
+      
+      <div class="chapter-tabs-bar-wrap">
+        <div class="chapter-horizontal-tabs" id="chapterHorizontalTabs"></div>
+      </div>
+
+      <div class="chapter-hero-banner" id="chapterHeroBanner">
+        <div class="chapter-hero-info">
+          <div class="chapter-hero-title-row">
+            <h2 id="chapterActiveTitle">Calculus</h2>
+            <span class="badge badge-primary" id="chapterQuestionCountBadge">0 Questions</span>
+          </div>
+          <p id="chapterActiveSubtitle">Browse and study all questions, theories, and derivations for this chapter.</p>
+        </div>
+        <div class="chapter-hero-actions">
+          <button class="btn btn-secondary btn-sm" id="btnExpandAllChapterSol">
+            <i class="fa-solid fa-eye"></i> Expand Solutions
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btnCollapseAllChapterSol">
+            <i class="fa-solid fa-eye-slash"></i> Hide Solutions
+          </button>
+        </div>
+      </div>
+
+      <div class="questions-container grid-layout" id="chapterQuestionsContainer"></div>
+
+    </section>
+
+    <!-- ==================== TAB 3: DYNAMIC FORMULA MCQ QUIZ GENERATOR ==================== -->
+    <section class="tab-pane" id="pane-generator" style="display:none;">
+      <div class="generator-wrapper">
+        
+        <!-- Generator Control Dashboard -->
+        <div class="generator-control-card">
+          <div class="generator-header-info">
+            <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Dynamic Arithmetic Formula Quiz Generator</h2>
+            <p>Generates mathematically sound, randomized MCQs instantly based on 18 core arithmetic chapters.</p>
+          </div>
+
+          <div class="generator-controls-grid">
+            <div class="generator-form-group">
+              <label for="genTopicSelect"><i class="fa-solid fa-book"></i> Select Chapter / Formula:</label>
+              <select id="genTopicSelect" class="generator-select">
+                <option value="random">🎲 Random Mixed Chapters</option>
+                <option value="unit_digit">1. Unit Digit (Cyclicity & Powers)</option>
+                <option value="number_of_factors">2. Number of Factors (Total, Even, Odd)</option>
+                <option value="number_of_zeros">3. Number of Zeros (n! Trailing Zeros)</option>
+                <option value="remainder_theorem">4. Remainder Theorem (Euler & Fermat)</option>
+                <option value="hcf_and_lcm">5. HCF and LCM (Fractions & Relations)</option>
+                <option value="coordinate_geometry">6. Coordinate Geometry (Distance & Area)</option>
+                <option value="standard_deviation">7. Standard Deviation & Variance</option>
+                <option value="polygons">8. Polygons (Angles & Diagonals)</option>
+                <option value="bar_system">9. Bar System (Recurring Decimals)</option>
+                <option value="mean_median_mode">10. Mode, Mean & Median</option>
+                <option value="quadratic_equations">11. Quadratic Equations (Roots & Extremum)</option>
+                <option value="ap_and_gp">12. AP and GP Progressions</option>
+                <option value="probability">13. Probability</option>
+                <option value="algebra">14. Algebra (Identities)</option>
+                <option value="series_sums">15. Series & Special Sums</option>
+                <option value="surds_indices">16. Surds and Indices</option>
+                <option value="number_system">17. Number System (Primes, Perfect, Twin)</option>
+                <option value="binary_bases">18. Binary & Base Conversions</option>
+              </select>
+            </div>
+
+            <div class="generator-form-group">
+              <label for="genDifficultySelect"><i class="fa-solid fa-gauge"></i> Difficulty Level:</label>
+              <select id="genDifficultySelect" class="generator-select">
+                <option value="Medium">🟡 Medium</option>
+                <option value="Hard">🔴 Hard</option>
+                <option value="random">🎲 Random Difficulty</option>
+              </select>
+            </div>
+
+            <div class="generator-form-group">
+              <label for="genTotalQuestionsSelect"><i class="fa-solid fa-list-ol"></i> Total Questions:</label>
+              <select id="genTotalQuestionsSelect" class="generator-select">
+                <option value="5">5 Questions</option>
+                <option value="10" selected>10 Questions</option>
+                <option value="15">15 Questions</option>
+                <option value="20">20 Questions</option>
+                <option value="25">25 Questions</option>
+                <option value="50">50 Questions</option>
+                <option value="unlimited">♾️ Unlimited (Endless)</option>
+              </select>
+            </div>
+
+            <div class="generator-actions-col">
+              <button class="btn btn-primary" id="btnGenerateNewQuestion">
+                <i class="fa-solid fa-play"></i> Start / New Quiz
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generator Progress Bar -->
+        <div class="gen-progress-bar-wrap" id="genProgressBarWrap">
+          <div class="gen-progress-bar" id="genProgressBar" style="width: 10%;"></div>
+        </div>
+
+        <!-- Generated Question Quiz Card -->
+        <div class="generator-quiz-card" id="genQuizCard">
+          
+          <div class="gen-quiz-header">
+            <div class="gen-meta-pills">
+              <span class="gen-q-badge" id="genQuestionNumberBadge"><i class="fa-solid fa-list-ol"></i> Question 1 of 10</span>
+              <span class="meta-pill chapter" id="genCardChapter">Unit Digit</span>
+              <span class="meta-pill difficulty-medium" id="genCardDifficulty">Medium</span>
+            </div>
+            <div class="gen-score-pill">
+              <i class="fa-solid fa-trophy"></i> Score: <span id="genScoreCount">0</span> / <span id="genAnsweredCount">0</span>
+            </div>
+          </div>
+
+          <h3 class="gen-question-title" id="genCardTitle">Problem Statement</h3>
+          <div class="gen-question-statement" id="genCardStatement"></div>
+
+          <!-- Dynamic Options (A, B, C, D) -->
+          <div class="gen-options-container" id="genCardOptions"></div>
+
+          <!-- Interactive Solution Box -->
+          <div class="gen-solution-drawer" id="genSolutionDrawer" style="display:none;">
+            <div class="gen-solution-result-badge" id="genSolutionResultBadge">
+              <i class="fa-solid fa-circle-check"></i> Correct Answer!
+            </div>
+            <div class="gen-solution-body" id="genCardExplanation"></div>
+          </div>
+
+          <!-- Generator Card Actions -->
+          <div class="gen-card-footer">
+            <div class="gen-footer-left">
+              <button class="btn btn-secondary btn-sm" id="btnToggleGenSolution">
+                <i class="fa-solid fa-lightbulb"></i> <span id="btnToggleGenSolutionText">Show Step-by-Step Solution</span>
+              </button>
+            </div>
+            <div class="gen-footer-right">
+              <button class="btn btn-emerald btn-sm" id="btnSaveGenToBank" title="Save this question permanently to Question Bank">
+                <i class="fa-solid fa-bookmark"></i> Save to Bank
+              </button>
+              <button class="btn btn-primary btn-sm" id="btnNextGenQuestion">
+                <span id="btnNextGenQuestionText">Next Question</span> <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Quiz Completion Card (Hidden Initially) -->
+        <div class="gen-completion-card" id="genCompletionCard" style="display:none;">
+          <div class="completion-icon">
+            <i class="fa-solid fa-award"></i>
+          </div>
+          <h2>Quiz Completed! 🎉</h2>
+          <p class="completion-subtitle">Great effort on practicing your arithmetic formulas!</p>
+          
+          <div class="completion-stats-grid">
+            <div class="completion-stat-box">
+              <div class="stat-number" id="compFinalScore">8 / 10</div>
+              <div class="stat-label">Final Score</div>
+            </div>
+            <div class="completion-stat-box">
+              <div class="stat-number" id="compAccuracy">80%</div>
+              <div class="stat-label">Accuracy</div>
+            </div>
+            <div class="completion-stat-box">
+              <div class="stat-number" id="compTotalQuestions">10</div>
+              <div class="stat-label">Questions Attempted</div>
+            </div>
+          </div>
+
+          <div class="completion-actions">
+            <button class="btn btn-primary" id="btnRestartGenQuiz">
+              <i class="fa-solid fa-rotate"></i> Restart Quiz
+            </button>
+            <button class="btn btn-secondary" id="btnContinueEndlessQuiz">
+              <i class="fa-solid fa-infinity"></i> Continue Practice (Endless)
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: PRACTICE / QUIZ MODE ==================== -->
+    <section class="tab-pane" id="pane-practice" style="display:none;">
+      <div class="practice-wrapper">
+        <div class="practice-header-card">
+          <div class="practice-meta">
+            <div class="quiz-progress-bar-wrap">
+              <div class="quiz-progress-bar" id="quizProgressBar" style="width: 0%;"></div>
+            </div>
+            <div class="practice-stats-row">
+              <span class="quiz-badge" id="quizQuestionIndex">Question 1 of 10</span>
+              <div class="quiz-timer" id="quizTimer">
+                <i class="fa-regular fa-clock"></i> <span id="quizTimerDisplay">00:00</span>
+              </div>
+              <div class="quiz-score-badge">
+                <i class="fa-solid fa-trophy"></i> Score: <span id="quizScoreDisplay">0 / 0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="practice-setup-row">
+            <select id="practiceChapterSelect" class="practice-select">
+              <option value="all">Practice: All Chapters</option>
+            </select>
+            <select id="practiceDifficultySelect" class="practice-select">
+              <option value="all">All Difficulties</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+              <option value="Challenger">Challenger</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btnRestartQuiz">
+              <i class="fa-solid fa-shuffle"></i> Restart
+            </button>
+          </div>
+        </div>
+
+        <div class="quiz-card" id="quizCard">
+          <div class="quiz-card-header">
+            <div class="quiz-tags" id="quizTags"></div>
+            <button class="btn-icon" id="btnQuizBookmark" title="Bookmark Question">
+              <i class="fa-regular fa-star"></i>
+            </button>
+          </div>
+
+          <div class="quiz-question-body" id="quizQuestionBody"></div>
+          <div class="quiz-options-container" id="quizOptionsContainer"></div>
+
+          <div class="quiz-numerical-container" id="quizNumericalContainer" style="display:none;">
+            <label for="quizNumericalInput">Enter Numerical Answer:</label>
+            <div class="numerical-input-row">
+              <input type="text" id="quizNumericalInput" placeholder="e.g. 12 or 4.5">
+              <button class="btn btn-primary btn-sm" id="btnSubmitNumerical">Submit</button>
+            </div>
+          </div>
+
+          <div class="quiz-solution-box" id="quizSolutionBox" style="display:none;">
+            <div class="quiz-solution-header">
+              <h4 id="quizResultHeading"><i class="fa-solid fa-circle-check"></i> Correct!</h4>
+            </div>
+            <div class="quiz-solution-content" id="quizSolutionContent"></div>
+          </div>
+
+          <div class="quiz-footer">
+            <button class="btn btn-secondary btn-sm" id="btnQuizPrev" disabled>
+              <i class="fa-solid fa-arrow-left"></i> Previous
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnQuizNext">
+              Next <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: SPEED CALCULATION LAB & MENTAL MATH ==================== -->
+    <section class="tab-pane" id="pane-speed_calc" style="display:none;">
+      <div class="speed-calc-container">
+        
+        <!-- Header & Daily Goal Banner -->
+        <div class="speed-header-card">
+          <div class="speed-header-top">
+            <div class="speed-title-wrap">
+              <h2><i class="fa-solid fa-bolt" style="color:var(--accent-amber);"></i> Speed Calculation Lab</h2>
+              <p class="speed-subtitle">Master Addition, Subtraction, Multi-Term Chains, 3-Digit Multiplication, Tables (1–30), Squares (1–40), Cubes (1–25), Roots, and Fractional Percentages.</p>
+            </div>
+            <div class="speed-daily-goal-box">
+              <div class="daily-goal-info">
+                <span class="goal-label"><i class="fa-solid fa-bullseye"></i> Daily Calculation Target</span>
+                <span class="goal-numbers" id="speedDailyCountText">0 / 50 calcs</span>
+              </div>
+              <div class="goal-progress-track">
+                <div class="goal-progress-fill" id="speedDailyProgressBar" style="width:0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Metrics Bar -->
+          <div class="speed-stats-bar">
+            <div class="speed-stat-pill">
+              <i class="fa-solid fa-gauge-high" style="color:var(--accent-cyan);"></i>
+              <span>Best Speed: <strong id="speedBestCpm">0 CPM</strong></span>
+            </div>
+            <div class="speed-stat-pill">
+              <i class="fa-solid fa-fire" style="color:var(--accent-amber);"></i>
+              <span>Streak: <strong id="speedBestStreak">0 🔥</strong></span>
+            </div>
+            <div class="speed-stat-pill">
+              <i class="fa-solid fa-check-double" style="color:var(--accent-emerald);"></i>
+              <span>All-Time Calcs: <strong id="speedTotalCalcs">0</strong></span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnOpenSpeedHistory" style="margin-left:auto;">
+              <i class="fa-solid fa-chart-line"></i> History & Diagnosis
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. WORKOUT TRACKS & CUSTOMIZER (Visible when drill is NOT active) -->
+        <div class="speed-setup-section" id="speedSetupSection">
+          <h3 class="section-subheading"><i class="fa-solid fa-dumbbell"></i> Select Speed Drill Track</h3>
+          
+          <div class="speed-tracks-grid">
+            
+            <div class="speed-track-card active" data-track="daily_mix">
+              <div class="track-badge badge-amber"><i class="fa-solid fa-fire"></i> Recommended</div>
+              <div class="track-icon"><i class="fa-solid fa-bolt-lightning"></i></div>
+              <h4>Daily 5-Min Warmup</h4>
+              <p>Balanced mix of 2-digit addition, subtraction, squares 1–40, and tables 12–29.</p>
+              <div class="track-meta"><span>⏱️ 5 Mins</span> • <span>All Core Ops</span></div>
+            </div>
+
+            <div class="speed-track-card" data-track="squares_cubes">
+              <div class="track-badge badge-purple"><i class="fa-solid fa-crown"></i> High Yield</div>
+              <div class="track-icon"><i class="fa-solid fa-cubes-stacked"></i></div>
+              <h4>Squares 1–40 & Cubes 1–25</h4>
+              <p>Direct powers, Base 50 shortcuts, and instant root inverse mapping.</p>
+              <div class="track-meta"><span>🎯 25 Questions</span> • <span>Powers & Roots</span></div>
+            </div>
+
+            <div class="speed-track-card" data-track="multiplication_tables">
+              <div class="track-badge badge-blue"><i class="fa-solid fa-table-cells"></i> Tables 1–30</div>
+              <div class="track-icon"><i class="fa-solid fa-xmark"></i></div>
+              <h4>Multiplication Tables Drill</h4>
+              <p>Rapid recall drill for tricky tables (13x, 14x, 17x, 18x, 19x, 23x, 29x).</p>
+              <div class="track-meta"><span>⚡ Fast Reflex</span> • <span>Tables 12–30</span></div>
+            </div>
+
+            <div class="speed-track-card" data-track="mult_3digit">
+              <div class="track-badge badge-cyan"><i class="fa-solid fa-calculator"></i> Advanced</div>
+              <div class="track-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+              <h4>3-Digit Multiplication Master</h4>
+              <p>2d × 2d, 3d × 2d, and 3d × 3d with Vedic base and distributive splits.</p>
+              <div class="track-meta"><span>🧠 High Mental Load</span> • <span>2d/3d Products</span></div>
+            </div>
+
+            <div class="speed-track-card" data-track="add_sub_chains">
+              <div class="track-badge badge-emerald"><i class="fa-solid fa-link"></i> Chains</div>
+              <div class="track-icon"><i class="fa-solid fa-plus-minus"></i></div>
+              <h4>Multi-Term Add & Sub Chains</h4>
+              <p>Continuous left-to-right accumulators with 4–5 mixed positive/negative terms.</p>
+              <div class="track-meta"><span>🎯 20 Chains</span> • <span>Accumulators</span></div>
+            </div>
+
+            <div class="speed-track-card" data-track="custom">
+              <div class="track-badge badge-slate"><i class="fa-solid fa-sliders"></i> Custom</div>
+              <div class="track-icon"><i class="fa-solid fa-gear"></i></div>
+              <h4>Custom Lab Config</h4>
+              <p>Hand-pick specific operations, custom digit sizes, and custom timers.</p>
+              <div class="track-meta"><span>🎛️ Fully Custom</span> • <span>Any Operation</span></div>
+            </div>
+
+          </div>
+
+          <!-- Custom Settings Collapsible Box -->
+          <div class="speed-custom-panel" id="speedCustomPanel" style="display:none;">
+            <h4><i class="fa-solid fa-sliders"></i> Customize Operations & Limits</h4>
+            
+            <div class="custom-ops-toggles">
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="addition" checked>
+                <span>➕ Addition</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="subtraction" checked>
+                <span>➖ Subtraction</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="add_sub_mix" checked>
+                <span>🔀 Mix Chains ($a-b+c$)</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="multiplication" checked>
+                <span>✖️ Multiplication</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="tables" checked>
+                <span>🔢 Tables (12–30)</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="squares" checked>
+                <span>🟦 Squares (1–40)</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="square_root" checked>
+                <span>📐 Square Roots</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="cubes" checked>
+                <span>🧊 Cubes (1–25)</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="cube_root" checked>
+                <span>🧊 Cube Roots</span>
+              </label>
+              <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="fraction_percentage" checked>
+                <span>% Fractions to %</span>
+              </label>
+            </div>
+
+            <div class="speed-settings-row">
+              <div class="speed-form-group">
+                <label>Drill Mode</label>
+                <select id="speedModeSelect" class="generator-select">
+                  <option value="sprint_20">Sprint (20 Questions)</option>
+                  <option value="sprint_50">Sprint (50 Questions)</option>
+                  <option value="sprint_100">Sprint (100 Questions)</option>
+                  <option value="timed_60">Time Attack (60 Seconds)</option>
+                  <option value="timed_120">Time Attack (2 Minutes)</option>
+                  <option value="timed_300">Time Attack (5 Minutes)</option>
+                  <option value="endless">Endless Zen Mode</option>
+                </select>
+              </div>
+
+              <div class="speed-form-group">
+                <label>Difficulty / Digits</label>
+                <select id="speedDifficultySelect" class="generator-select">
+                  <option value="easy">Easy (1 & 2-Digit Basics)</option>
+                  <option value="medium" selected>Medium (Exam Standard)</option>
+                  <option value="hard">Hard (Advanced 3-Digit & Chains)</option>
+                </select>
+              </div>
+
+              <div class="speed-form-group">
+                <label>Multiplication Range</label>
+                <select id="speedMultLevelSelect" class="generator-select">
+                  <option value="2d_1d">2-Digit × 1-Digit ($47 \times 8$)</option>
+                  <option value="2d_2d" selected>2-Digit × 2-Digit ($73 \times 24$)</option>
+                  <option value="3d_2d">3-Digit × 2-Digit ($246 \times 18$)</option>
+                  <option value="3d_3d">3-Digit × 3-Digit ($184 \times 126$)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Big Start Button -->
+          <div class="speed-start-actions">
+            <button class="btn btn-primary btn-lg" id="btnStartSpeedDrill">
+              <i class="fa-solid fa-play"></i> Start Calculation Drill
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. LIVE DRILL ARENA (Visible during active drill) -->
+        <div class="speed-arena-card" id="speedArenaCard" style="display:none;">
+          
+          <!-- Live Telemetry Header -->
+          <div class="arena-header">
+            <div class="arena-meta-left">
+              <span class="arena-badge" id="arenaQuestionCounter">Question 1 of 20</span>
+              <span class="arena-badge badge-mode" id="arenaModeBadge">Sprint Mode</span>
+            </div>
+            
+            <div class="arena-telemetry-right">
+              <div class="telemetry-item">
+                <i class="fa-solid fa-stopwatch"></i>
+                <span id="arenaTimerDisplay">00:00</span>
+              </div>
+              <div class="telemetry-item">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span id="arenaLiveCpm">0 CPM</span>
+              </div>
+              <div class="telemetry-item">
+                <i class="fa-solid fa-fire"></i>
+                <span id="arenaLiveStreak">0 🔥</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="arena-progress-track">
+            <div class="arena-progress-fill" id="arenaProgressBar" style="width:0%;"></div>
+          </div>
+
+          <!-- Main Math Problem Display -->
+          <div class="arena-problem-box" id="arenaProblemBox">
+            <div class="problem-category-badge" id="arenaCategoryBadge">Addition</div>
+            <div class="problem-expression" id="arenaExpression">$47 + 68$</div>
+          </div>
+
+          <!-- User Input & Feedback Box -->
+          <div class="arena-input-section">
+            <div class="speed-input-wrapper" id="speedInputWrapper">
+              <input type="text" id="speedCalcInput" class="speed-calc-input" placeholder="Type answer..." autocomplete="off" autofocus>
+              <button class="btn-input-submit" id="btnSpeedSubmit" title="Submit (Enter)">
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+            <div class="input-feedback-msg" id="arenaFeedbackMsg"></div>
+          </div>
+
+          <!-- On-Screen Mobile & Touch Numpad -->
+          <div class="speed-numpad-container" id="speedNumpadContainer">
+            <div class="numpad-grid">
+              <button type="button" class="numpad-btn" data-key="7">7</button>
+              <button type="button" class="numpad-btn" data-key="8">8</button>
+              <button type="button" class="numpad-btn" data-key="9">9</button>
+              <button type="button" class="numpad-btn btn-action" data-key="backspace"><i class="fa-solid fa-delete-left"></i></button>
+
+              <button type="button" class="numpad-btn" data-key="4">4</button>
+              <button type="button" class="numpad-btn" data-key="5">5</button>
+              <button type="button" class="numpad-btn" data-key="6">6</button>
+              <button type="button" class="numpad-btn btn-action" data-key="clear">C</button>
+
+              <button type="button" class="numpad-btn" data-key="1">1</button>
+              <button type="button" class="numpad-btn" data-key="2">2</button>
+              <button type="button" class="numpad-btn" data-key="3">3</button>
+              <button type="button" class="numpad-btn btn-minus" data-key="-">-</button>
+
+              <button type="button" class="numpad-btn" data-key="0">0</button>
+              <button type="button" class="numpad-btn" data-key=".">.</button>
+              <button type="button" class="numpad-btn btn-enter" data-key="enter" style="grid-column: span 2;">ENTER ↵</button>
+            </div>
+          </div>
+
+          <!-- Mental Shortcut Tip Box -->
+          <div class="arena-tip-box" id="arenaTipBox" style="display:none;">
+            <div class="tip-content" id="arenaTipContent"></div>
+          </div>
+
+          <!-- Arena Footer Controls -->
+          <div class="arena-footer">
+            <button class="btn btn-secondary btn-sm" id="btnToggleDrillHint">
+              <i class="fa-solid fa-lightbulb"></i> <span id="btnToggleDrillHintText">Show Shortcut Tip</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnSkipDrillQuestion">
+              <i class="fa-solid fa-forward"></i> Skip (Space)
+            </button>
+            <button class="btn btn-danger btn-sm" id="btnEndDrillEarly">
+              <i class="fa-solid fa-stop"></i> End Drill
+            </button>
+          </div>
+
+        </div>
+
+        <!-- 3. DRILL RESULTS & PROBLEM PATTERN DIAGNOSIS (Visible after drill) -->
+        <div class="speed-results-card" id="speedResultsCard" style="display:none;">
+          
+          <div class="results-celebration-header">
+            <div class="results-icon" id="resultsGradeIcon"><i class="fa-solid fa-trophy"></i></div>
+            <h2 id="resultsGradeTitle">⚡ Great Speed Workout!</h2>
+            <p id="resultsGradeSubtitle">You completed the calculation session. Here is your speed & pattern diagnosis.</p>
+          </div>
+
+          <!-- Key Metrics Grid -->
+          <div class="results-metrics-grid">
+            <div class="result-metric-box">
+              <div class="metric-val" id="resScore">18 / 20</div>
+              <div class="metric-lbl">Total Score</div>
+            </div>
+            <div class="result-metric-box">
+              <div class="metric-val" id="resAccuracy">90%</div>
+              <div class="metric-lbl">Accuracy</div>
+            </div>
+            <div class="result-metric-box">
+              <div class="metric-val highlight" id="resCpm">38 CPM</div>
+              <div class="metric-lbl">Calculations / Min</div>
+            </div>
+            <div class="result-metric-box">
+              <div class="metric-val" id="resAvgTime">1.6s</div>
+              <div class="metric-lbl">Avg Time / Question</div>
+            </div>
+          </div>
+
+          <!-- AI Problem Pattern & Weakness Diagnosis -->
+          <div class="results-diagnosis-card">
+            <h3><i class="fa-solid fa-magnifying-glass-chart" style="color:var(--accent-amber);"></i> Cognitive Pattern & Weakness Diagnosis</h3>
+            <div class="diagnosis-items-list" id="diagnosisItemsList">
+              <!-- Dynamically rendered problem patterns -->
+            </div>
+          </div>
+
+          <!-- Actionable AI Recommendations -->
+          <div class="results-recommendations-card">
+            <h3><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent-primary);"></i> Recommended Daily Action Plan</h3>
+            <ul class="recommendations-list" id="recommendationsList">
+              <!-- Dynamically populated recommendations -->
+            </ul>
+          </div>
+
+          <!-- Results Actions -->
+          <div class="results-action-row">
+            <button class="btn btn-primary btn-md" id="btnRestartSameDrill">
+              <i class="fa-solid fa-rotate"></i> Practice Again
+            </button>
+            <button class="btn btn-secondary btn-md" id="btnChooseAnotherTrack">
+              <i class="fa-solid fa-table-list"></i> Select Other Track
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: FLASHCARD REVISION MODE ==================== -->
+    <section class="tab-pane" id="pane-flashcards" style="display:none;">
+      <div class="flashcards-wrapper">
+        <div class="flashcard-controls-bar">
+          <div class="flashcard-meta">
+            <span class="flashcard-badge" id="flashcardCountBadge">Card 1 of 10</span>
+            <span class="flashcard-tip"><i class="fa-solid fa-hand-pointer"></i> Click card to flip</span>
+          </div>
+          <div class="flashcard-filter-row">
+            <select id="flashcardChapterSelect" class="practice-select">
+              <option value="all">All Chapters</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btnShuffleFlashcards">
+              <i class="fa-solid fa-shuffle"></i> Shuffle
+            </button>
+          </div>
+        </div>
+
+        <div class="flashcard-3d-scene" id="flashcardScene">
+          <div class="flashcard-inner" id="flashcardInner">
+            <div class="flashcard-face flashcard-front">
+              <div class="flashcard-header">
+                <span class="meta-pill chapter" id="fcFrontChapter">Calculus</span>
+                <span class="meta-pill" id="fcFrontDiff">Medium</span>
+                <span class="flip-badge"><i class="fa-solid fa-arrows-rotate"></i> Flip for Derivation</span>
+              </div>
+              <h3 class="flashcard-title" id="fcFrontTitle">Title</h3>
+              <div class="flashcard-body" id="fcFrontBody"></div>
+              <div class="flashcard-footer-hint">Click card to reveal step-by-step solution</div>
+            </div>
+
+            <div class="flashcard-face flashcard-back">
+              <div class="flashcard-header">
+                <span class="meta-pill pyq-badge"><i class="fa-solid fa-lightbulb"></i> Step-by-Step Derivation</span>
+                <span class="flip-badge"><i class="fa-solid fa-arrows-rotate"></i> Flip for Question</span>
+              </div>
+              <div class="flashcard-body" id="fcBackBody"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flashcard-action-bar">
+          <button class="btn btn-secondary btn-sm" id="btnPrevFlashcard"><i class="fa-solid fa-arrow-left"></i> Prev</button>
+          <button class="btn btn-danger btn-sm" id="btnMarkNeedsRevision"><i class="fa-solid fa-rotate-right"></i> Review Again</button>
+          <button class="btn btn-emerald btn-sm" id="btnMarkMastered"><i class="fa-solid fa-circle-check"></i> I Know This</button>
+          <button class="btn btn-primary btn-sm" id="btnNextFlashcard">Next <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: LATEX FORMULA SANDBOX ==================== -->
+    <section class="tab-pane" id="pane-sandbox" style="display:none;">
+      <div class="sandbox-container">
+        <div class="sandbox-header-card">
+          <h2><i class="fa-solid fa-flask"></i> Interactive LaTeX Formula Sandbox</h2>
+          <p>Type or paste any math formula for instant KaTeX rendering.</p>
+        </div>
+
+        <div class="math-palette-card">
+          <div class="palette-categories-tabs">
+            <button class="palette-tab active" data-cat="calculus">Calculus</button>
+            <button class="palette-tab" data-cat="algebra">Algebra</button>
+            <button class="palette-tab" data-cat="trig">Trigonometry</button>
+            <button class="palette-tab" data-cat="matrices">Matrices</button>
+            <button class="palette-tab" data-cat="greek">Greek</button>
+            <button class="palette-tab" data-cat="sets">Sets & Logic</button>
+          </div>
+          <div class="palette-buttons-grid" id="sandboxPaletteButtons"></div>
+        </div>
+
+        <div class="sandbox-split-view">
+          <div class="sandbox-editor-pane">
+            <label for="sandboxInput"><strong>LaTeX Code:</strong></label>
+            <textarea id="sandboxInput" rows="6" placeholder="e.g. \int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}"></textarea>
+            <div class="sandbox-editor-footer">
+              <button class="btn btn-secondary btn-sm" id="btnClearSandbox"><i class="fa-solid fa-trash"></i> Clear</button>
+              <button class="btn btn-secondary btn-sm" id="btnCopySandboxLatex"><i class="fa-regular fa-copy"></i> Copy</button>
+              <button class="btn btn-primary btn-sm" id="btnSendSandboxToNewQ"><i class="fa-solid fa-plus"></i> Use in Question</button>
+            </div>
+          </div>
+
+          <div class="sandbox-preview-pane">
+            <label><strong>Rendered Formula:</strong></label>
+            <div class="sandbox-render-output" id="sandboxRenderOutput"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: 18-CHAPTER FORMULA NOTES ==================== -->
+    <section class="tab-pane" id="pane-formulas" style="display:none;">
+      <div class="formulas-container">
+        <div class="formulas-header-card">
+          <div class="formulas-header-info">
+            <h2><i class="fa-solid fa-book-bookmark"></i> 18-Chapter Arithmetic & Quantitative Formula Handbook</h2>
+            <p>Comprehensive mathematical handbook with formulas, properties, and derivation shortcuts.</p>
+          </div>
+          <div class="formula-search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="formulaSearchInput" placeholder="Search formula (e.g. cyclicity, factors, polygon, variance)...">
+          </div>
+        </div>
+        
+        <div class="formula-chapters-grid" id="formulaChaptersGrid"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 8: ANALYTICS & STATS ==================== -->
+    <section class="tab-pane" id="pane-stats" style="display:none;">
+      <div class="stats-container">
+        <div class="stats-overview-grid">
+          <div class="stat-card">
+            <div class="stat-icon icon-indigo"><i class="fa-solid fa-database"></i></div>
+            <div class="stat-content">
+              <h3 id="statTotalQuestions">0</h3>
+              <p>Total Questions</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-amber"><i class="fa-solid fa-star"></i></div>
+            <div class="stat-content">
+              <h3 id="statBookmarked">0</h3>
+              <p>Bookmarked</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-emerald"><i class="fa-solid fa-graduation-cap"></i></div>
+            <div class="stat-content">
+              <h3 id="statPYQCount">0</h3>
+              <p>PYQs</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-rose"><i class="fa-solid fa-rotate-right"></i></div>
+            <div class="stat-content">
+              <h3 id="statNeedsRevision">0</h3>
+              <p>Needs Revision</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="analytics-details-grid">
+          <div class="analytics-card">
+            <h3><i class="fa-solid fa-chart-column"></i> Chapter Distribution</h3>
+            <div class="distribution-list" id="chapterDistributionList"></div>
+          </div>
+          <div class="analytics-card">
+            <h3><i class="fa-solid fa-gauge"></i> Difficulty Breakdown</h3>
+            <div class="distribution-list" id="difficultyDistributionList"></div>
+          </div>
+          <div class="analytics-card">
+            <h3><i class="fa-solid fa-award"></i> Exam Breakdown</h3>
+            <div class="distribution-list" id="examDistributionList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL: ADD / EDIT QUESTION ==================== -->
+  <div class="modal-overlay" id="questionModal" style="display:none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3 id="modalTitle"><i class="fa-solid fa-pen-to-square"></i> Add Math Question</h3>
+        <button class="btn-close" id="btnCloseQuestionModal" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="questionForm" onsubmit="return false;">
+          <input type="hidden" id="editQuestionId">
+
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="formTitle">Question Title *</label>
+              <input type="text" id="formTitle" placeholder="e.g. Definite Integral King's Property" required>
+            </div>
+            <div class="form-group">
+              <label for="formChapter">Chapter *</label>
+              <input type="text" id="formChapter" placeholder="e.g. Calculus, Vectors" list="chapterSuggestions" required>
+              <datalist id="chapterSuggestions">
+                <option value="Unit Digit">
+                <option value="Number of Factors">
+                <option value="Number of Zeros">
+                <option value="Remainder Theorem">
+                <option value="HCF and LCM">
+                <option value="Coordinate Geometry">
+                <option value="Standard Deviation">
+                <option value="Polygons">
+                <option value="Bar System">
+                <option value="Mode, Mean, Median">
+                <option value="Quadratic Equation">
+                <option value="Arithmetic & Geometric Progression">
+                <option value="Probability">
+                <option value="Algebra">
+                <option value="Series & Special Sums">
+                <option value="Surds and Indices">
+                <option value="Number System">
+                <option value="Binary & Bases">
+                <option value="Calculus">
+                <option value="Vectors & 3D Geometry">
+                <option value="Matrices & Determinants">
+                <option value="Trigonometry">
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label for="formSubtopic">Subtopic</label>
+              <input type="text" id="formSubtopic" placeholder="e.g. Cyclicity">
+            </div>
+          </div>
+
+          <div class="form-row-4">
+            <div class="form-group">
+              <label for="formDifficulty">Difficulty</label>
+              <select id="formDifficulty">
+                <option value="Easy">🟢 Easy</option>
+                <option value="Medium" selected>🟡 Medium</option>
+                <option value="Hard">🔴 Hard</option>
+                <option value="Challenger">🟣 Challenger</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="formType">Question Type</label>
+              <select id="formType">
+                <option value="mcq_single" selected>Single Choice MCQ</option>
+                <option value="mcq_multi">Multiple Choice MCQ</option>
+                <option value="numerical">Numerical</option>
+                <option value="subjective">Proof / Note</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="formExam">PYQ Exam</label>
+              <input type="text" id="formExam" placeholder="e.g. Quantitative Aptitude, SSC, JEE">
+            </div>
+
+            <div class="form-group">
+              <label for="formYear">Year & Shift</label>
+              <input type="text" id="formYear" placeholder="e.g. 2025 Shift 1">
+            </div>
+          </div>
+
+          <div class="formula-helper-toolbar">
+            <span class="toolbar-label"><i class="fa-solid fa-bolt"></i> Math:</span>
+            <div class="toolbar-buttons" id="editorToolbarButtons">
+              <button type="button" class="btn-math-insert" data-latex="\frac{a}{b}">\frac{a}{b}</button>
+              <button type="button" class="btn-math-insert" data-latex="\sqrt{x}">\sqrt{x}</button>
+              <button type="button" class="btn-math-insert" data-latex="x^{2}">x^n</button>
+              <button type="button" class="btn-math-insert" data-latex="\int_{a}^{b} f(x) \, dx">\int</button>
+              <button type="button" class="btn-math-insert" data-latex="\lim_{x \to 0}">\lim</button>
+              <button type="button" class="btn-math-insert" data-latex="\sum_{i=1}^{n}">\sum</button>
+              <button type="button" class="btn-math-insert" data-latex="\begin{pmatrix} a & b \\ c & d \end{pmatrix}">Matrix</button>
+              <button type="button" class="btn-math-insert" data-latex="\alpha">\alpha</button>
+              <button type="button" class="btn-math-insert" data-latex="\theta">\theta</button>
+              <button type="button" class="btn-math-insert" data-latex="\pi">\pi</button>
+              <button type="button" class="btn-math-insert" data-latex="\infty">\infty</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="label-with-actions">
+              <label for="formQuestion">Question Text (Markdown + LaTeX: $...$ or $$...$$) *</label>
+              <span class="tip-badge">Supports Ctrl+V image paste</span>
+            </div>
+            <textarea id="formQuestion" rows="3" placeholder="Enter problem statement with LaTeX" required></textarea>
+            <div class="live-preview-box" id="questionPreviewBox">
+              <span class="preview-label">Live Preview:</span>
+              <div class="preview-content" id="questionLivePreview">Type above to preview...</div>
+            </div>
+          </div>
+
+          <div class="options-builder-section" id="optionsBuilderSection">
+            <div class="section-header-row">
+              <h4><i class="fa-solid fa-list-ol"></i> Multiple Choice Options</h4>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnAddOption">
+                <i class="fa-solid fa-plus"></i> Add Option
+              </button>
+            </div>
+            <div class="options-list" id="formOptionsList"></div>
+          </div>
+
+          <div class="form-group" id="formNumericalSection" style="display:none;">
+            <label for="formCorrectAnswer">Correct Numerical Answer *</label>
+            <input type="text" id="formCorrectAnswer" placeholder="e.g. 4.5 or 12">
+          </div>
+
+          <div class="form-group">
+            <div class="label-with-actions">
+              <label for="formExplanation">Step-by-Step Explanation *</label>
+              <span class="tip-badge">Markdown + LaTeX</span>
+            </div>
+            <textarea id="formExplanation" rows="5" placeholder="Provide step-by-step solution and derivation."></textarea>
+            <div class="live-preview-box" id="explanationPreviewBox">
+              <span class="preview-label">Live Solution Preview:</span>
+              <div class="preview-content" id="explanationLivePreview">Preview will appear here...</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="formKeyFormulas">Key Formulas (Comma separated)</label>
+            <textarea id="formKeyFormulas" rows="2" placeholder="\text{Formula used}"></textarea>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="formTags">Tags</label>
+              <input type="text" id="formTags" placeholder="Quantitative, Formula-Notes">
+            </div>
+            <div class="form-group">
+              <label for="formNotes">Personal Revision Note</label>
+              <input type="text" id="formNotes" placeholder="Short trick note.">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-image"></i> Diagram / Screenshot</label>
+            <div class="image-dropzone" id="imageDropzone">
+              <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+              <p>Drag diagram here, <strong>paste with Ctrl+V</strong>, or browse</p>
+              <input type="file" id="imageFileInput" accept="image/*" multiple style="display:none;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('imageFileInput').click()">
+                <i class="fa-solid fa-folder-open"></i> Browse
+              </button>
+            </div>
+            <div class="attached-images-preview" id="attachedImagesContainer"></div>
+          </div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" id="btnCancelQuestionModal">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="btnSaveQuestion">
+          <i class="fa-solid fa-floppy-disk"></i> Save Question
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: AI SMART IMPORT (ChatGPT / Gemini) ==================== -->
+  <div class="modal-overlay" id="aiImportModal" style="display:none;">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Smart Import (ChatGPT & Gemini)</h3>
+        <button class="btn-close" id="btnCloseAIModal" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="ai-prompt-banner">
+          <div class="ai-prompt-info">
+            <h4><i class="fa-solid fa-lightbulb"></i> How to generate questions:</h4>
+            <p>1. Open <a href="./CHATGPT_GEMINI_MATH_PROMPT.md" target="_blank" class="accent-link">CHATGPT_GEMINI_MATH_PROMPT.md</a> and copy prompt.</p>
+            <p>2. Ask ChatGPT or Gemini to generate questions with LaTeX.</p>
+            <p>3. Paste output below and click <strong>Parse & Add</strong>!</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnCopyMasterPrompt">
+            <i class="fa-solid fa-copy"></i> Copy Prompt
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label for="aiRawInput">Paste ChatGPT / Gemini Output (JSON Array or Markdown) *</label>
+          <textarea id="aiRawInput" rows="10" placeholder='Paste your ChatGPT or Gemini output here...'></textarea>
+        </div>
+
+        <div class="ai-parse-feedback" id="aiParseFeedback" style="display:none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" id="btnCancelAIModal">Cancel</button>
+        <button class="btn btn-accent btn-sm" id="btnProcessAIImport">
+          <i class="fa-solid fa-file-import"></i> Parse & Add to Bank
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: BACKUP & DATA MANAGEMENT ==================== -->
+  <div class="modal-overlay" id="dataModal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-database"></i> Backup & Data Management</h3>
+        <button class="btn-close" id="btnCloseDataModal" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="backup-options-list">
+          
+          <div class="backup-option-card">
+            <div class="backup-option-info">
+              <h4><i class="fa-solid fa-download"></i> Export JSON Backup</h4>
+              <p>Download all questions and diagrams as JSON.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnExportJSON">
+              <i class="fa-solid fa-file-export"></i> Export JSON
+            </button>
+          </div>
+
+          <div class="backup-option-card">
+            <div class="backup-option-info">
+              <h4><i class="fa-brands fa-markdown"></i> Export Markdown (.MD)</h4>
+              <p>Export notes ready for Obsidian, Notion, or GitHub.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnExportMarkdownModal">
+              <i class="fa-solid fa-file-code"></i> Export .MD
+            </button>
+          </div>
+
+          <div class="backup-option-card">
+            <div class="backup-option-info">
+              <h4><i class="fa-solid fa-upload"></i> Restore / Import JSON</h4>
+              <p>Import questions from a JSON backup file.</p>
+            </div>
+            <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('jsonFileInput').click()">
+              <i class="fa-solid fa-file-import"></i> Choose File
+            </button>
+          </div>
+
+          <div class="backup-option-card">
+            <div class="backup-option-info">
+              <h4><i class="fa-solid fa-seedling"></i> Load Sample PYQ Set</h4>
+              <p>Load sample questions with LaTeX across Calculus, Vectors, and Algebra.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnLoadSampleData">
+              <i class="fa-solid fa-rotate"></i> Load Samples
+            </button>
+          </div>
+
+          <div class="backup-option-card danger">
+            <div class="backup-option-info">
+              <h4><i class="fa-solid fa-trash-can"></i> Clear All Data</h4>
+              <p>Permanently erase all stored questions.</p>
+            </div>
+            <button class="btn btn-danger btn-sm" id="btnClearAllData">
+              <i class="fa-solid fa-triangle-exclamation"></i> Clear All
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" id="btnCloseDataModalBottom">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="./sample_data.js"></script>
+  <script src="./arithmetic_generator.js"></script>
+  <script src="./speed_calc_engine.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
