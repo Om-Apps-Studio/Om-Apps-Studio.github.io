@@ -576,6 +576,14 @@
               <div class="track-meta"><span>⏱️ 5 Mins</span> • <span>All Core Ops</span></div>
             </div>
 
+            <div class="speed-track-card" data-track="ssc_banking">
+              <div class="track-badge badge-rose"><i class="fa-solid fa-graduation-cap"></i> SSC & Banking</div>
+              <div class="track-icon"><i class="fa-solid fa-calculator"></i></div>
+              <h4>SSC & Banking Simplification</h4>
+              <p>Moderate to Hard VBODMAS chains, percentage splits, powers/roots combos, and missing '?' terms.</p>
+              <div class="track-meta"><span>🔥 Moderate–Hard</span> • <span>Exam Special</span></div>
+            </div>
+
             <div class="speed-track-card" data-track="squares_cubes">
               <div class="track-badge badge-purple"><i class="fa-solid fa-crown"></i> High Yield</div>
               <div class="track-icon"><i class="fa-solid fa-cubes-stacked"></i></div>
@@ -618,18 +626,30 @@
 
           </div>
 
-          <!-- Custom Settings Collapsible Box -->
-          <div class="speed-custom-panel" id="speedCustomPanel" style="display:none;">
-            <h4><i class="fa-solid fa-sliders"></i> Customize Operations & Limits</h4>
+          <!-- Pre-Quiz Customization Options & Topic Selector (Visible & Configurable Before Launching) -->
+          <div class="speed-custom-panel" id="speedCustomPanel">
+            <div class="custom-panel-header">
+              <h4><i class="fa-solid fa-sliders"></i> Customize Drill Question Topics & Settings</h4>
+              <div class="custom-quick-pills">
+                <button type="button" class="btn-quick-pill" id="btnSelectAllSpeedOps"><i class="fa-solid fa-check-double"></i> All Topics</button>
+                <button type="button" class="btn-quick-pill" id="btnSelectSscBankSpeedOps"><i class="fa-solid fa-graduation-cap"></i> SSC & Banking</button>
+                <button type="button" class="btn-quick-pill" id="btnSelectPowersRootsSpeedOps"><i class="fa-solid fa-cubes"></i> Powers & Roots</button>
+                <button type="button" class="btn-quick-pill" id="btnSelectCoreSpeedOps"><i class="fa-solid fa-plus-minus"></i> Core Arithmetic</button>
+              </div>
+            </div>
             
             <div class="custom-ops-toggles">
               <label class="op-checkbox-label">
+                <input type="checkbox" class="speed-op-check" value="simplification" checked>
+                <span>⚡ SSC & Banking Simplification</span>
+              </label>
+              <label class="op-checkbox-label">
                 <input type="checkbox" class="speed-op-check" value="addition" checked>
-                <span>➕ Addition</span>
+                <span>➕ Addition (2d / 3d)</span>
               </label>
               <label class="op-checkbox-label">
                 <input type="checkbox" class="speed-op-check" value="subtraction" checked>
-                <span>➖ Subtraction</span>
+                <span>➖ Subtraction (Borrowing)</span>
               </label>
               <label class="op-checkbox-label">
                 <input type="checkbox" class="speed-op-check" value="add_sub_mix" checked>
@@ -637,7 +657,7 @@
               </label>
               <label class="op-checkbox-label">
                 <input type="checkbox" class="speed-op-check" value="multiplication" checked>
-                <span>✖️ Multiplication</span>
+                <span>✖️ Multiplication (2d/3d)</span>
               </label>
               <label class="op-checkbox-label">
                 <input type="checkbox" class="speed-op-check" value="tables" checked>
@@ -680,11 +700,11 @@
               </div>
 
               <div class="speed-form-group">
-                <label>Difficulty / Digits</label>
+                <label>Difficulty / Complexity</label>
                 <select id="speedDifficultySelect" class="generator-select">
                   <option value="easy">Easy (1 & 2-Digit Basics)</option>
                   <option value="medium" selected>Medium (Exam Standard)</option>
-                  <option value="hard">Hard (Advanced 3-Digit & Chains)</option>
+                  <option value="hard">Hard (Advanced Multi-Step)</option>
                 </select>
               </div>
 
@@ -698,106 +718,188 @@
                 </select>
               </div>
             </div>
+
+            <!-- Custom Number Ranges for Squares, Cubes & Tables -->
+            <div class="speed-range-custom-grid">
+              <!-- Squares Range -->
+              <div class="range-card-box">
+                <div class="range-card-header">
+                  <label><i class="fa-solid fa-superscript"></i> Squares Range ($n^2$ & $\sqrt{n}$)</label>
+                  <span class="range-hint-pill">1 to 100</span>
+                </div>
+                <div class="range-inputs-dual">
+                  <div class="range-input-item">
+                    <span>From:</span>
+                    <input type="number" id="speedSquareMin" min="1" max="999" value="1" class="speed-num-input">
+                  </div>
+                  <span class="range-to-sep">to</span>
+                  <div class="range-input-item">
+                    <span>To:</span>
+                    <input type="number" id="speedSquareMax" min="1" max="999" value="40" class="speed-num-input">
+                  </div>
+                </div>
+                <div class="range-quick-tags" id="squarePresetTags">
+                  <button type="button" class="btn-range-preset" data-min="1" data-max="25">1–25</button>
+                  <button type="button" class="btn-range-preset active" data-min="1" data-max="40">1–40 (Std)</button>
+                  <button type="button" class="btn-range-preset" data-min="25" data-max="75">25–75</button>
+                  <button type="button" class="btn-range-preset" data-min="1" data-max="100">1–100</button>
+                </div>
+              </div>
+
+              <!-- Cubes Range -->
+              <div class="range-card-box">
+                <div class="range-card-header">
+                  <label><i class="fa-solid fa-cubes"></i> Cubes Range ($n^3$ & $\sqrt[3]{n}$)</label>
+                  <span class="range-hint-pill">1 to 50</span>
+                </div>
+                <div class="range-inputs-dual">
+                  <div class="range-input-item">
+                    <span>From:</span>
+                    <input type="number" id="speedCubeMin" min="1" max="999" value="1" class="speed-num-input">
+                  </div>
+                  <span class="range-to-sep">to</span>
+                  <div class="range-input-item">
+                    <span>To:</span>
+                    <input type="number" id="speedCubeMax" min="1" max="999" value="25" class="speed-num-input">
+                  </div>
+                </div>
+                <div class="range-quick-tags" id="cubePresetTags">
+                  <button type="button" class="btn-range-preset" data-min="1" data-max="15">1–15</button>
+                  <button type="button" class="btn-range-preset active" data-min="1" data-max="25">1–25 (Std)</button>
+                  <button type="button" class="btn-range-preset" data-min="11" data-max="30">11–30</button>
+                  <button type="button" class="btn-range-preset" data-min="1" data-max="50">1–50</button>
+                </div>
+              </div>
+
+              <!-- Tables Range -->
+              <div class="range-card-box">
+                <div class="range-card-header">
+                  <label><i class="fa-solid fa-table-cells"></i> Tables Range ($A \times B$)</label>
+                  <span class="range-hint-pill">1 to 50</span>
+                </div>
+                <div class="range-inputs-dual">
+                  <div class="range-input-item">
+                    <span>From:</span>
+                    <input type="number" id="speedTableMin" min="1" max="99" value="12" class="speed-num-input">
+                  </div>
+                  <span class="range-to-sep">to</span>
+                  <div class="range-input-item">
+                    <span>To:</span>
+                    <input type="number" id="speedTableMax" min="1" max="99" value="30" class="speed-num-input">
+                  </div>
+                </div>
+                <div class="range-quick-tags" id="tablePresetTags">
+                  <button type="button" class="btn-range-preset" data-min="2" data-max="20">2–20 (Basics)</button>
+                  <button type="button" class="btn-range-preset active" data-min="12" data-max="30">12–30 (Exam)</button>
+                  <button type="button" class="btn-range-preset" data-min="15" data-max="40">15–40</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Big Start Button -->
           <div class="speed-start-actions">
             <button class="btn btn-primary btn-lg" id="btnStartSpeedDrill">
-              <i class="fa-solid fa-play"></i> Start Calculation Drill
+              <i class="fa-solid fa-play"></i> Start Fullscreen Calculation Drill
             </button>
           </div>
         </div>
 
-        <!-- 2. LIVE DRILL ARENA (Visible during active drill) -->
+        <!-- 2. LIVE DRILL ARENA (Fullscreen Focus Quiz Mode) -->
         <div class="speed-arena-card" id="speedArenaCard" style="display:none;">
-          
-          <!-- Live Telemetry Header -->
-          <div class="arena-header">
-            <div class="arena-meta-left">
-              <span class="arena-badge" id="arenaQuestionCounter">Question 1 of 20</span>
-              <span class="arena-badge badge-mode" id="arenaModeBadge">Sprint Mode</span>
-            </div>
+          <div class="speed-arena-inner">
             
-            <div class="arena-telemetry-right">
-              <div class="telemetry-item">
-                <i class="fa-solid fa-stopwatch"></i>
-                <span id="arenaTimerDisplay">00:00</span>
+            <!-- Live Telemetry Header -->
+            <div class="arena-header">
+              <div class="arena-meta-left">
+                <span class="arena-badge" id="arenaQuestionCounter">Question 1 of 20</span>
+                <span class="arena-badge badge-mode" id="arenaModeBadge">Sprint Mode</span>
               </div>
-              <div class="telemetry-item">
-                <i class="fa-solid fa-gauge-high"></i>
-                <span id="arenaLiveCpm">0 CPM</span>
-              </div>
-              <div class="telemetry-item">
-                <i class="fa-solid fa-fire"></i>
-                <span id="arenaLiveStreak">0 🔥</span>
+              
+              <div class="arena-telemetry-right">
+                <div class="telemetry-item">
+                  <i class="fa-solid fa-stopwatch"></i>
+                  <span id="arenaTimerDisplay">00:00</span>
+                </div>
+                <div class="telemetry-item">
+                  <i class="fa-solid fa-gauge-high"></i>
+                  <span id="arenaLiveCpm">0 CPM</span>
+                </div>
+                <div class="telemetry-item">
+                  <i class="fa-solid fa-fire"></i>
+                  <span id="arenaLiveStreak">0 🔥</span>
+                </div>
+                <button type="button" class="btn-arena-exit" id="btnArenaExitTop" title="Exit Quiz" aria-label="Exit Quiz">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
               </div>
             </div>
-          </div>
 
-          <!-- Progress Bar -->
-          <div class="arena-progress-track">
-            <div class="arena-progress-fill" id="arenaProgressBar" style="width:0%;"></div>
-          </div>
+            <!-- Progress Bar -->
+            <div class="arena-progress-track">
+              <div class="arena-progress-fill" id="arenaProgressBar" style="width:0%;"></div>
+            </div>
 
-          <!-- Main Math Problem Display -->
-          <div class="arena-problem-box" id="arenaProblemBox">
-            <div class="problem-category-badge" id="arenaCategoryBadge">Addition</div>
-            <div class="problem-expression" id="arenaExpression">$47 + 68$</div>
-          </div>
+            <!-- Main Math Problem Display -->
+            <div class="arena-problem-box" id="arenaProblemBox">
+              <div class="problem-category-badge" id="arenaCategoryBadge">Addition</div>
+              <div class="problem-expression" id="arenaExpression">$47 + 68$</div>
+            </div>
 
-          <!-- User Input & Feedback Box -->
-          <div class="arena-input-section">
-            <div class="speed-input-wrapper" id="speedInputWrapper">
-              <input type="text" id="speedCalcInput" class="speed-calc-input" placeholder="Type answer..." autocomplete="off" autofocus>
-              <button class="btn-input-submit" id="btnSpeedSubmit" title="Submit (Enter)">
-                <i class="fa-solid fa-arrow-right"></i>
+            <!-- User Input & Feedback Box -->
+            <div class="arena-input-section">
+              <div class="speed-input-wrapper" id="speedInputWrapper">
+                <input type="text" id="speedCalcInput" class="speed-calc-input" placeholder="Use number pad below" autocomplete="off" inputmode="none">
+                <button class="btn-input-submit" id="btnSpeedSubmit" title="Submit (Enter)">
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+              <div class="input-feedback-msg" id="arenaFeedbackMsg"></div>
+            </div>
+
+            <!-- On-Screen Mobile & Touch Numpad -->
+            <div class="speed-numpad-container" id="speedNumpadContainer">
+              <div class="numpad-grid">
+                <button type="button" class="numpad-btn" data-key="7">7</button>
+                <button type="button" class="numpad-btn" data-key="8">8</button>
+                <button type="button" class="numpad-btn" data-key="9">9</button>
+                <button type="button" class="numpad-btn btn-action" data-key="backspace" title="Delete"><i class="fa-solid fa-delete-left"></i></button>
+
+                <button type="button" class="numpad-btn" data-key="4">4</button>
+                <button type="button" class="numpad-btn" data-key="5">5</button>
+                <button type="button" class="numpad-btn" data-key="6">6</button>
+                <button type="button" class="numpad-btn btn-action" data-key="clear" title="Clear">C</button>
+
+                <button type="button" class="numpad-btn" data-key="1">1</button>
+                <button type="button" class="numpad-btn" data-key="2">2</button>
+                <button type="button" class="numpad-btn" data-key="3">3</button>
+                <button type="button" class="numpad-btn btn-minus" data-key="-">-</button>
+
+                <button type="button" class="numpad-btn" data-key="0">0</button>
+                <button type="button" class="numpad-btn" data-key=".">.</button>
+                <button type="button" class="numpad-btn btn-enter" data-key="enter" style="grid-column: span 2;">ENTER ↵</button>
+              </div>
+            </div>
+
+            <!-- Mental Shortcut Tip Box -->
+            <div class="arena-tip-box" id="arenaTipBox" style="display:none;">
+              <div class="tip-content" id="arenaTipContent"></div>
+            </div>
+
+            <!-- Arena Footer Controls -->
+            <div class="arena-footer">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnToggleDrillHint">
+                <i class="fa-solid fa-lightbulb"></i> <span id="btnToggleDrillHintText">Shortcut Tip</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnSkipDrillQuestion">
+                <i class="fa-solid fa-forward"></i> Skip (Space)
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" id="btnEndDrillEarly">
+                <i class="fa-solid fa-stop"></i> End Drill
               </button>
             </div>
-            <div class="input-feedback-msg" id="arenaFeedbackMsg"></div>
+
           </div>
-
-          <!-- On-Screen Mobile & Touch Numpad -->
-          <div class="speed-numpad-container" id="speedNumpadContainer">
-            <div class="numpad-grid">
-              <button type="button" class="numpad-btn" data-key="7">7</button>
-              <button type="button" class="numpad-btn" data-key="8">8</button>
-              <button type="button" class="numpad-btn" data-key="9">9</button>
-              <button type="button" class="numpad-btn btn-action" data-key="backspace"><i class="fa-solid fa-delete-left"></i></button>
-
-              <button type="button" class="numpad-btn" data-key="4">4</button>
-              <button type="button" class="numpad-btn" data-key="5">5</button>
-              <button type="button" class="numpad-btn" data-key="6">6</button>
-              <button type="button" class="numpad-btn btn-action" data-key="clear">C</button>
-
-              <button type="button" class="numpad-btn" data-key="1">1</button>
-              <button type="button" class="numpad-btn" data-key="2">2</button>
-              <button type="button" class="numpad-btn" data-key="3">3</button>
-              <button type="button" class="numpad-btn btn-minus" data-key="-">-</button>
-
-              <button type="button" class="numpad-btn" data-key="0">0</button>
-              <button type="button" class="numpad-btn" data-key=".">.</button>
-              <button type="button" class="numpad-btn btn-enter" data-key="enter" style="grid-column: span 2;">ENTER ↵</button>
-            </div>
-          </div>
-
-          <!-- Mental Shortcut Tip Box -->
-          <div class="arena-tip-box" id="arenaTipBox" style="display:none;">
-            <div class="tip-content" id="arenaTipContent"></div>
-          </div>
-
-          <!-- Arena Footer Controls -->
-          <div class="arena-footer">
-            <button class="btn btn-secondary btn-sm" id="btnToggleDrillHint">
-              <i class="fa-solid fa-lightbulb"></i> <span id="btnToggleDrillHintText">Show Shortcut Tip</span>
-            </button>
-            <button class="btn btn-secondary btn-sm" id="btnSkipDrillQuestion">
-              <i class="fa-solid fa-forward"></i> Skip (Space)
-            </button>
-            <button class="btn btn-danger btn-sm" id="btnEndDrillEarly">
-              <i class="fa-solid fa-stop"></i> End Drill
-            </button>
-          </div>
-
         </div>
 
         <!-- 3. DRILL RESULTS & PROBLEM PATTERN DIAGNOSIS (Visible after drill) -->
@@ -1249,6 +1351,14 @@
       <div class="modal-body">
         <div class="backup-options-list">
           
+          <div class="backup-option-card" style="border-left: 4px solid var(--accent-emerald);">
+            <div class="backup-option-info">
+              <h4><i class="fa-solid fa-hard-drive"></i> Persistent Storage Status</h4>
+              <p id="storageStatusText">Active storage: <strong>questions.json (Server File Sync)</strong></p>
+            </div>
+            <span class="arena-badge" id="storageStatusBadge" style="background:rgba(16, 185, 129, 0.15); color:var(--accent-emerald); border-color:var(--accent-emerald);"><i class="fa-solid fa-circle-check"></i> File Synced</span>
+          </div>
+
           <div class="backup-option-card">
             <div class="backup-option-info">
               <h4><i class="fa-solid fa-download"></i> Export JSON Backup</h4>
@@ -1305,6 +1415,40 @@
 
       <div class="modal-footer">
         <button class="btn btn-secondary btn-sm" id="btnCloseDataModalBottom">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: DELETE CONFIRMATION ==================== -->
+  <div class="modal-overlay" id="deleteConfirmModal" style="display:none;">
+    <div class="modal-card modal-card-sm" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 style="color:var(--accent-rose); display:flex; align-items:center; gap:0.4rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Delete Question
+        </h3>
+        <button class="btn-close" id="btnCloseDeleteModal" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <p style="margin-bottom:0.8rem; color:var(--text-primary); font-size:0.92rem; line-height:1.45;">
+          Are you sure you want to delete this question from the database/server?
+        </p>
+        
+        <div class="delete-preview-box" id="deleteQuestionPreview" style="background:var(--bg-secondary); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:0.75rem 0.9rem; margin-bottom:0.9rem;">
+          <h5 id="deletePreviewTitle" style="font-size:0.88rem; font-weight:700; margin-bottom:0.25rem; color:var(--text-primary);"></h5>
+          <div id="deletePreviewText" style="color:var(--text-secondary); font-size:0.82rem; max-height:80px; overflow-y:auto; line-height:1.4;"></div>
+        </div>
+
+        <p style="font-size:0.78rem; color:var(--accent-rose); display:flex; align-items:center; gap:0.35rem; font-weight:600;">
+          <i class="fa-solid fa-circle-exclamation"></i> This action is permanent and cannot be undone.
+        </p>
+      </div>
+
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:0.6rem;">
+        <button class="btn btn-secondary btn-sm" id="btnCancelDelete">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="btnConfirmDelete">
+          <i class="fa-solid fa-trash-can"></i> Yes, Delete Question
+        </button>
       </div>
     </div>
   </div>

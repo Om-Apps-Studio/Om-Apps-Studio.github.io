@@ -1,0 +1,13 @@
+{
+  "name": "math-vault",
+  "version": "2.0.0",
+  "description": "Math Vault - Interactive Formula Notes, Speed Lab & Question Bank with File Persistence",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["math", "latex", "speed-math", "question-bank"],
+  "author": "",
+  "license": "MIT"
+}

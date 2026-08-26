@@ -180,10 +180,12 @@
     }
 
     /**
-     * Multiplication Tables (1 to 30)
+     * Multiplication Tables (Custom Range)
      */
-    static genTables(tableRange = [12, 29]) {
-      const table = this.randInt(tableRange[0], tableRange[1]);
+    static genTables(tableRange = [12, 30]) {
+      const min = Math.max(1, parseInt(tableRange[0], 10) || 12);
+      const max = Math.max(min, parseInt(tableRange[1], 10) || 30);
+      const table = this.randInt(min, max);
       const multiplier = this.randInt(2, 12);
       const answer = table * multiplier;
 
@@ -199,10 +201,12 @@
     }
 
     /**
-     * Squares Mastery (1 to 40)
+     * Squares Mastery (Custom Range e.g. 1 to 40, 25 to 75, 1 to 100)
      */
     static genSquare(range = [1, 40]) {
-      const n = this.randInt(range[0], range[1]);
+      const min = Math.max(1, parseInt(range[0], 10) || 1);
+      const max = Math.max(min, parseInt(range[1], 10) || 40);
+      const n = this.randInt(min, max);
       const answer = n * n;
       let trick = '';
 
@@ -226,15 +230,17 @@
         answer: answer,
         answerType: 'number',
         hint: trick,
-        meta: { n, range }
+        meta: { n, range: [min, max] }
       };
     }
 
     /**
-     * Square Roots (Perfect Squares 1 to 1600)
+     * Square Roots (Perfect Squares from custom range)
      */
     static genSquareRoot(range = [1, 40]) {
-      const n = this.randInt(range[0], range[1]);
+      const min = Math.max(1, parseInt(range[0], 10) || 1);
+      const max = Math.max(min, parseInt(range[1], 10) || 40);
+      const n = this.randInt(min, max);
       const sq = n * n;
 
       return {
@@ -244,15 +250,17 @@
         answer: n,
         answerType: 'number',
         hint: `💡 **Root Logic:** Look at unit digit of $${sq}$ (ends in $${sq % 10}$) $\\implies$ root ends in $${n % 10}$. $\\sqrt{${sq}} = ${n}$.`,
-        meta: { n, sq }
+        meta: { n, sq, range: [min, max] }
       };
     }
 
     /**
-     * Cubes Mastery (1 to 25)
+     * Cubes Mastery (Custom Range e.g. 1 to 25, 11 to 30, 1 to 50)
      */
     static genCube(range = [1, 25]) {
-      const n = this.randInt(range[0], range[1]);
+      const min = Math.max(1, parseInt(range[0], 10) || 1);
+      const max = Math.max(min, parseInt(range[1], 10) || 25);
+      const n = this.randInt(min, max);
       const answer = n * n * n;
       let trick = `💡 **Cube Fact:** $${n}^3 = ${n} \\times ${n} \\times ${n} = ${n * n} \\times ${n} = \\mathbf{${answer}}$.`;
       if (n <= 10) {
@@ -266,15 +274,17 @@
         answer: answer,
         answerType: 'number',
         hint: trick,
-        meta: { n, range }
+        meta: { n, range: [min, max] }
       };
     }
 
     /**
-     * Cube Roots (Perfect Cubes 1 to 15,625)
+     * Cube Roots (Perfect Cubes from custom range)
      */
     static genCubeRoot(range = [1, 25]) {
-      const n = this.randInt(range[0], range[1]);
+      const min = Math.max(1, parseInt(range[0], 10) || 1);
+      const max = Math.max(min, parseInt(range[1], 10) || 25);
+      const n = this.randInt(min, max);
       const cube = n * n * n;
 
       // Unique ending digits for cubes
@@ -288,7 +298,7 @@
         answer: n,
         answerType: 'number',
         hint: `💡 **Unit Digit Rule:** Cubes have unique 1-to-1 unit digit mapping ($${lastDigit} \\leftrightarrow ${rootLast}$). $\\sqrt[3]{${cube}} = ${n}$.`,
-        meta: { n, cube }
+        meta: { n, cube, range: [min, max] }
       };
     }
 
@@ -331,17 +341,259 @@
     }
 
     /**
+     * SSC & Banking Simplification Generator (Moderate to Hard)
+     * Real exam patterns: VBODMAS chains, percentage splits, powers & roots combos,
+     * fractional multipliers, and missing variable '?' equations.
+     */
+    static genSimplification(difficulty = 'medium') {
+      const subTypes = ['bodmas_chain', 'percentage_split', 'roots_powers_combo', 'fraction_chain', 'missing_variable'];
+      const chosenType = this.randChoice(subTypes);
+
+      if (chosenType === 'percentage_split') {
+        // SSC / Banking standard percentage splits
+        const pctPool = [
+          { pct: 12.5, fracText: '\\frac{1}{8}', fracVal: 1/8, baseMulti: 8 },
+          { pct: 25, fracText: '\\frac{1}{4}', fracVal: 1/4, baseMulti: 4 },
+          { pct: 37.5, fracText: '\\frac{3}{8}', fracVal: 3/8, baseMulti: 8 },
+          { pct: 50, fracText: '\\frac{1}{2}', fracVal: 1/2, baseMulti: 2 },
+          { pct: 62.5, fracText: '\\frac{5}{8}', fracVal: 5/8, baseMulti: 8 },
+          { pct: 75, fracText: '\\frac{3}{4}', fracVal: 3/4, baseMulti: 4 },
+          { pct: 16.66, fracText: '\\frac{1}{6}', fracVal: 1/6, baseMulti: 6, displayPct: '16\\frac{2}{3}\\%' },
+          { pct: 14.28, fracText: '\\frac{1}{7}', fracVal: 1/7, baseMulti: 7, displayPct: '14\\frac{2}{7}\\%' },
+          { pct: 20, fracText: '\\frac{1}{5}', fracVal: 1/5, baseMulti: 5 },
+          { pct: 40, fracText: '\\frac{2}{5}', fracVal: 2/5, baseMulti: 5 },
+          { pct: 60, fracText: '\\frac{3}{5}', fracVal: 3/5, baseMulti: 5 },
+          { pct: 80, fracText: '\\frac{4}{5}', fracVal: 4/5, baseMulti: 5 },
+          { pct: 33.33, fracText: '\\frac{1}{3}', fracVal: 1/3, baseMulti: 3, displayPct: '33\\frac{1}{3}\\%' },
+          { pct: 66.66, fracText: '\\frac{2}{3}', fracVal: 2/3, baseMulti: 3, displayPct: '66\\frac{2}{3}\\%' }
+        ];
+
+        const p1 = this.randChoice(pctPool);
+        let p2 = this.randChoice(pctPool);
+        while (p2 === p1) p2 = this.randChoice(pctPool);
+
+        const multi1 = this.randInt(difficulty === 'hard' ? 12 : 6, difficulty === 'hard' ? 35 : 20);
+        const num1 = multi1 * p1.baseMulti * (difficulty === 'hard' ? 10 : 10);
+        const val1 = Math.round(num1 * p1.fracVal);
+
+        const multi2 = this.randInt(difficulty === 'hard' ? 8 : 4, difficulty === 'hard' ? 25 : 15);
+        const num2 = multi2 * p2.baseMulti * (difficulty === 'hard' ? 10 : 10);
+        const val2 = Math.round(num2 * p2.fracVal);
+
+        const isAdd = Math.random() > 0.35;
+        const answer = isAdd ? (val1 + val2) : (val1 - val2);
+        const opSign = isAdd ? '+' : '-';
+
+        const disp1 = p1.displayPct || `${p1.pct}\\%`;
+        const disp2 = p2.displayPct || `${p2.pct}\\%`;
+
+        const expr = `${disp1} \\text{ of } ${num1} ${opSign} ${disp2} \\text{ of } ${num2}`;
+        const hint = `💡 **Banking Fraction Split:** Convert to standard fractions:\n- $${disp1} \\to ${p1.fracText} \\times ${num1} = ${val1}$\n- $${disp2} \\to ${p2.fracText} \\times ${num2} = ${val2}$\n- **Result:** $${val1} ${opSign} ${val2} = \\mathbf{${answer}}$.`;
+
+        return {
+          category: 'simplification',
+          title: 'Banking Percentage Simplification',
+          expression: `$${expr}$`,
+          answer: answer,
+          answerType: 'number',
+          hint: hint,
+          meta: { subtype: 'percentage_split', difficulty }
+        };
+      }
+
+      if (chosenType === 'roots_powers_combo') {
+        // SSC CGL / Banking combo of Squares, Cubes, and Roots
+        const sqRoots = [
+          { root: 16, sq: 256 }, { root: 18, sq: 324 }, { root: 22, sq: 484 },
+          { root: 24, sq: 576 }, { root: 26, sq: 676 }, { root: 28, sq: 784 },
+          { root: 32, sq: 1024 }, { root: 34, sq: 1156 }, { root: 36, sq: 1296 },
+          { root: 38, sq: 1444 }, { root: 42, sq: 1764 }, { root: 44, sq: 1936 }
+        ];
+        const cbRoots = [
+          { root: 6, cb: 216 }, { root: 7, cb: 343 }, { root: 8, cb: 512 },
+          { root: 9, cb: 729 }, { root: 11, cb: 1331 }, { root: 12, cb: 1728 },
+          { root: 13, cb: 2197 }, { root: 14, cb: 2744 }, { root: 15, cb: 3375 }
+        ];
+
+        const s1 = this.randChoice(sqRoots);
+        const c1 = this.randChoice(cbRoots);
+        const mult = this.randInt(3, difficulty === 'hard' ? 15 : 8);
+        const subSquareVal = this.randInt(11, difficulty === 'hard' ? 22 : 16);
+        const subSquare = subSquareVal * subSquareVal;
+
+        // Expression: sqrt(sq) * mult + cbrt(cb) - subSquareVal^2
+        const p1 = s1.root * mult;
+        const p2 = c1.root;
+        const p3 = subSquare;
+        const answer = p1 + p2 - p3;
+
+        const expr = `\\sqrt{${s1.sq}} \\times ${mult} + \\sqrt[3]{${c1.cb}} - ${subSquareVal}^2`;
+        const hint = `💡 **Roots & Powers Breakdown:**\n- $\\sqrt{${s1.sq}} = ${s1.root} \\implies ${s1.root} \\times ${mult} = ${p1}$\n- $\\sqrt[3]{${c1.cb}} = ${c1.root}$\n- $${subSquareVal}^2 = ${subSquare}$\n- **Total:** $${p1} + ${p2} - ${p3} = \\mathbf{${answer}}$.`;
+
+        return {
+          category: 'simplification',
+          title: 'SSC Roots & Powers Combo',
+          expression: `$${expr}$`,
+          answer: answer,
+          answerType: 'number',
+          hint: hint,
+          meta: { subtype: 'roots_powers_combo', difficulty }
+        };
+      }
+
+      if (chosenType === 'fraction_chain') {
+        // Multi-fraction reduction & multiplication chains
+        const fracs = [
+          { num: 3, den: 8 }, { num: 5, den: 8 }, { num: 7, den: 8 },
+          { num: 5, den: 12 }, { num: 7, den: 12 }, { num: 11, den: 12 },
+          { num: 3, den: 7 }, { num: 4, den: 7 }, { num: 5, den: 7 },
+          { num: 2, den: 9 }, { num: 4, den: 9 }, { num: 5, den: 9 }, { num: 7, den: 9 }
+        ];
+
+        const f1 = this.randChoice(fracs);
+        let f2 = this.randChoice(fracs);
+        while (f2.den === f1.den) f2 = this.randChoice(fracs);
+
+        const k1 = this.randInt(12, difficulty === 'hard' ? 45 : 25);
+        const N1 = k1 * f1.den;
+        const val1 = k1 * f1.num;
+
+        const k2 = this.randInt(8, difficulty === 'hard' ? 35 : 20);
+        const N2 = k2 * f2.den;
+        const val2 = k2 * f2.num;
+
+        const extraAdd = this.randInt(25, difficulty === 'hard' ? 250 : 90);
+        const isAdd = Math.random() > 0.4;
+        const answer = isAdd ? (val1 + val2 - extraAdd) : (val1 - val2 + extraAdd);
+        const op1 = isAdd ? '+' : '-';
+        const op2 = isAdd ? '-' : '+';
+
+        const expr = `\\frac{${f1.num}}{${f1.den}} \\times ${N1} ${op1} \\frac{${f2.num}}{${f2.den}} \\times ${N2} ${op2} ${extraAdd}`;
+        const hint = `💡 **Fraction Cancellation:**\n- $\\frac{${f1.num}}{${f1.den}} \\times ${N1} = ${f1.num} \\times ${k1} = ${val1}$\n- $\\frac{${f2.num}}{${f2.den}} \\times ${N2} = ${f2.num} \\times ${k2} = ${val2}$\n- **Total:** $${val1} ${op1} ${val2} ${op2} ${extraAdd} = \\mathbf{${answer}}$.`;
+
+        return {
+          category: 'simplification',
+          title: 'Fraction Multiplication Chain',
+          expression: `$${expr}$`,
+          answer: answer,
+          answerType: 'number',
+          hint: hint,
+          meta: { subtype: 'fraction_chain', difficulty }
+        };
+      }
+
+      if (chosenType === 'missing_variable') {
+        // Find missing '?' value (Exam Classic)
+        const variants = ['linear_mult', 'root_eq', 'sq_eq'];
+        const v = this.randChoice(variants);
+
+        if (v === 'root_eq') {
+          // sqrt(?) + p% of N = Total
+          const pcts = [20, 25, 40, 50, 75];
+          const pct = this.randChoice(pcts);
+          const mult = this.randInt(4, 15);
+          const N = mult * (100 / (pct === 20 ? 20 : (pct === 25 ? 25 : (pct === 40 ? 20 : (pct === 50 ? 50 : 25)))));
+          const pctVal = Math.round((pct / 100) * N);
+          const rootTarget = this.randInt(12, difficulty === 'hard' ? 40 : 25);
+          const missingAns = rootTarget * rootTarget;
+          const total = rootTarget + pctVal;
+
+          const expr = `\\sqrt{?} + ${pct}\\% \\text{ of } ${N} = ${total}`;
+          const hint = `💡 **Solving for Missing Variable (?):**\n1. Calculate ${pct}% of $${N} = ${pctVal}$\n2. $\\sqrt{?} = ${total} - ${pctVal} = ${rootTarget}$\n3. $? = ${rootTarget}^2 = \\mathbf{${missingAns}}$.`;
+
+          return {
+            category: 'simplification',
+            title: 'Missing Term Simplification (?)',
+            expression: `$${expr} \\implies ? = \\text{?}$`,
+            answer: missingAns,
+            answerType: 'number',
+            hint: hint,
+            meta: { subtype: 'missing_variable_root', difficulty }
+          };
+        } else if (v === 'sq_eq') {
+          // ?^2 + a^2 = Total
+          const target = this.randInt(12, difficulty === 'hard' ? 35 : 22);
+          const a = this.randInt(9, 18);
+          const total = target * target + a * a;
+          const missingAns = target;
+
+          const expr = `?^2 + ${a}^2 = ${total}`;
+          const hint = `💡 **Square Equation:**\n1. $${a}^2 = ${a * a}$\n2. $?^2 = ${total} - ${a * a} = ${target * target}$\n3. $? = \\sqrt{${target * target}} = \\mathbf{${missingAns}}$.`;
+
+          return {
+            category: 'simplification',
+            title: 'Missing Square Simplification (?)',
+            expression: `$${expr} \\implies ? = \\text{?}$`,
+            answer: missingAns,
+            answerType: 'number',
+            hint: hint,
+            meta: { subtype: 'missing_variable_sq', difficulty }
+          };
+        } else {
+          // ? * a - b = c
+          const a = this.randInt(12, difficulty === 'hard' ? 28 : 18);
+          const missingAns = this.randInt(14, difficulty === 'hard' ? 45 : 30);
+          const b = this.randInt(50, 350);
+          const c = (missingAns * a) - b;
+
+          const expr = `? \\times ${a} - ${b} = ${c}`;
+          const hint = `💡 **Linear Missing Term:**\n1. $? \\times ${a} = ${c} + ${b} = ${c + b}$\n2. $? = \\frac{${c + b}}{${a}} = \\mathbf{${missingAns}}$.`;
+
+          return {
+            category: 'simplification',
+            title: 'Linear Missing Term Simplification (?)',
+            expression: `$${expr} \\implies ? = \\text{?}$`,
+            answer: missingAns,
+            answerType: 'number',
+            hint: hint,
+            meta: { subtype: 'missing_variable_linear', difficulty }
+          };
+        }
+      }
+
+      // Default / bodmas_chain
+      // Multi-term BODMAS with squares, products, divisions
+      const a = this.randInt(12, difficulty === 'hard' ? 28 : 18);
+      const b = this.randInt(11, difficulty === 'hard' ? 25 : 16);
+      const prod = a * b;
+
+      const div = this.randChoice([6, 7, 8, 9, 12, 14, 15, 16, 18]);
+      const divQuot = this.randInt(12, difficulty === 'hard' ? 45 : 25);
+      const divDividend = div * divQuot;
+
+      const sqBase = this.randInt(8, difficulty === 'hard' ? 20 : 15);
+      const sqVal = sqBase * sqBase;
+
+      const answer = prod - divQuot + sqVal;
+      const expr = `${a} \\times ${b} - ${divDividend} \\div ${div} + ${sqBase}^2`;
+      const hint = `💡 **VBODMAS Rule (Brackets $\\to$ Of $\\to$ Div $\\to$ Mult $\\to$ Add $\\to$ Sub):**\n1. Power: $${sqBase}^2 = ${sqVal}$\n2. Division: $${divDividend} \\div ${div} = ${divQuot}$\n3. Multiplication: $${a} \\times ${b} = ${prod}$\n4. Combine: $${prod} - ${divQuot} + ${sqVal} = \\mathbf{${answer}}$.`;
+
+      return {
+        category: 'simplification',
+        title: 'BODMAS Exam Simplification',
+        expression: `$${expr}$`,
+        answer: answer,
+        answerType: 'number',
+        hint: hint,
+        meta: { subtype: 'bodmas_chain', difficulty }
+      };
+    }
+
+    /**
      * Universal Question Generator based on active filters
      */
     static generateQuestion(config = {}) {
       const activeOps = config.operations && config.operations.length > 0
         ? config.operations
-        : ['addition', 'subtraction', 'multiplication', 'tables', 'squares', 'cubes'];
+        : ['addition', 'subtraction', 'multiplication', 'tables', 'squares', 'cubes', 'simplification'];
 
       const chosenOp = this.randChoice(activeOps);
       const difficulty = config.difficulty || 'medium';
 
       switch (chosenOp) {
+        case 'simplification':
+        case 'ssc_banking':
+          return this.genSimplification(difficulty);
         case 'addition':
           return this.genAddition(difficulty, config.addTerms || 2);
         case 'subtraction':
@@ -363,7 +615,7 @@
         case 'fraction_percentage':
           return this.genFractionPercentage();
         default:
-          return this.genAddition('medium', 2);
+          return this.genSimplification(difficulty);
       }
     }
 
@@ -492,6 +744,8 @@
 
     static formatCategoryName(cat) {
       const names = {
+        simplification: 'SSC & Banking Simplification',
+        ssc_banking: 'SSC & Banking Simplification',
         addition: 'Addition',
         subtraction: 'Subtraction',
         add_sub_mix: 'Mixed Addition/Subtraction',

@@ -13,6 +13,8 @@ class MathBankDB {
     this.db = null;
     this.localStorageKey = 'mathvault_questions_v2';
     this.seededFlagKey = 'mathvault_has_seeded_v2';
+    this.isServerConnected = false;
+    this.activeServerOrigin = '';
   }
 
   async init() {
@@ -48,57 +50,70 @@ class MathBankDB {
   }
 
   /**
-   * Automatically scans for questions saved in previous storage versions (v1 MathVaultDB, mathvault_questions)
-   * and migrates them safely to prevent any accidental data loss across app updates.
+   * Helper to perform API requests to the backend server with origin auto-discovery
    */
-  async recoverOldVersionData() {
-    const recovered = [];
+  async apiFetch(endpoint, options = {}) {
+    const originsToTry = [
+      this.activeServerOrigin || '',
+      '',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3001'
+    ];
 
-    // 1. Scan previous LocalStorage keys
-    const oldKeys = ['mathvault_questions', 'mathvault_questions_v1', 'mathvault_saved_questions', 'math_questions'];
-    for (const key of oldKeys) {
+    const uniqueOrigins = Array.from(new Set(originsToTry));
+
+    for (const origin of uniqueOrigins) {
       try {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            recovered.push(...parsed);
-          }
+        const fullUrl = `${origin}${endpoint}`;
+        const res = await fetch(fullUrl, {
+          ...options,
+          headers: {
+            'Accept': 'application/json',
+            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+            ...(options.headers || {})
+          },
+          cache: 'no-store'
+        });
+        if (res && res.ok) {
+          this.isServerConnected = true;
+          this.activeServerOrigin = origin;
+          return res;
         }
-      } catch (e) {}
+      } catch (err) {}
     }
 
-    // 2. Scan previous IndexedDB 'MathVaultDB' (v1)
-    try {
-      const oldDbReq = indexedDB.open('MathVaultDB', 1);
-      const oldQuestions = await new Promise((resolve) => {
-        oldDbReq.onsuccess = (e) => {
-          try {
-            const db = e.target.result;
-            if (db.objectStoreNames.contains('questions')) {
-              const tx = db.transaction('questions', 'readonly');
-              const store = tx.objectStore('questions');
-              const getAllReq = store.getAll();
-              getAllReq.onsuccess = () => resolve(getAllReq.result || []);
-              getAllReq.onerror = () => resolve([]);
-            } else {
-              resolve([]);
-            }
-          } catch (err) {
-            resolve([]);
-          }
-        };
-        oldDbReq.onerror = () => resolve([]);
-      });
-      if (oldQuestions && oldQuestions.length > 0) {
-        recovered.push(...oldQuestions);
-      }
-    } catch (e) {}
-
-    return recovered;
+    this.isServerConnected = false;
+    return null;
   }
 
   async getAllQuestions() {
+    // 1. Try fetching from Backend Server API first (authoritative cross-browser storage)
+    try {
+      const response = await this.apiFetch('/api/questions');
+      if (response) {
+        const serverData = await response.json();
+        if (Array.isArray(serverData)) {
+          // Replace local IndexedDB & LocalStorage cache with the authoritative server data
+          if (this.db) {
+            try {
+              const tx = this.db.transaction('questions', 'readwrite');
+              const store = tx.objectStore('questions');
+              store.clear();
+              serverData.forEach((q) => store.put(q));
+            } catch (e) {}
+          }
+          this.syncToLocalStorage(serverData);
+          this.isServerConnected = true;
+          return serverData;
+        }
+      }
+    } catch (serverErr) {
+      this.isServerConnected = false;
+    }
+
+    // 2. Fallback to Local IndexedDB
     if (this.db) {
       try {
         const fromIDB = await new Promise((resolve, reject) => {
@@ -118,11 +133,12 @@ class MathBankDB {
       }
     }
 
+    // 3. Fallback to LocalStorage
     const rawLS = localStorage.getItem(this.localStorageKey);
     if (rawLS) {
       try {
         const parsed = JSON.parse(rawLS);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
 
@@ -130,6 +146,15 @@ class MathBankDB {
   }
 
   async saveQuestion(question) {
+    // 1. Send to Backend Server API (saves to questions.json on disk)
+    try {
+      await this.apiFetch('/api/questions', {
+        method: 'POST',
+        body: JSON.stringify(question)
+      });
+    } catch (e) {}
+
+    // 2. Update local IndexedDB
     if (this.db) {
       try {
         await new Promise((resolve, reject) => {
@@ -142,7 +167,12 @@ class MathBankDB {
       } catch (e) {}
     }
 
-    const all = await this.getAllQuestions();
+    // 3. Update local storage
+    const rawLS = localStorage.getItem(this.localStorageKey);
+    let all = [];
+    if (rawLS) {
+      try { all = JSON.parse(rawLS) || []; } catch (e) {}
+    }
     const idx = all.findIndex((q) => q.id === question.id);
     if (idx >= 0) all[idx] = question;
     else all.unshift(question);
@@ -150,6 +180,14 @@ class MathBankDB {
   }
 
   async deleteQuestion(id) {
+    // 1. Send DELETE to Backend Server API (deletes from questions.json on disk)
+    try {
+      await this.apiFetch(`/api/questions/${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {}
+
+    // 2. Delete from local IndexedDB
     if (this.db) {
       try {
         await new Promise((resolve, reject) => {
@@ -162,12 +200,26 @@ class MathBankDB {
       } catch (e) {}
     }
 
-    const all = await this.getAllQuestions();
+    // 3. Delete from LocalStorage
+    const rawLS = localStorage.getItem(this.localStorageKey);
+    let all = [];
+    if (rawLS) {
+      try { all = JSON.parse(rawLS) || []; } catch (e) {}
+    }
     const filtered = all.filter((q) => q.id !== id);
     this.syncToLocalStorage(filtered);
   }
 
   async bulkAdd(questionsList) {
+    // 1. Send bulk update to Backend Server API
+    try {
+      await this.apiFetch('/api/questions/bulk', {
+        method: 'POST',
+        body: JSON.stringify(questionsList)
+      });
+    } catch (e) {}
+
+    // 2. Update local IndexedDB
     if (this.db) {
       try {
         await new Promise((resolve, reject) => {
@@ -180,7 +232,12 @@ class MathBankDB {
       } catch (e) {}
     }
 
-    const all = await this.getAllQuestions();
+    // 3. Update LocalStorage
+    const rawLS = localStorage.getItem(this.localStorageKey);
+    let all = [];
+    if (rawLS) {
+      try { all = JSON.parse(rawLS) || []; } catch (e) {}
+    }
     const map = new Map();
     all.forEach((q) => map.set(q.id, q));
     questionsList.forEach((q) => map.set(q.id, q));
@@ -189,6 +246,14 @@ class MathBankDB {
   }
 
   async clearAll() {
+    // 1. Send clear to Backend Server API
+    try {
+      await this.apiFetch('/api/questions/clear', {
+        method: 'POST'
+      });
+    } catch (e) {}
+
+    // 2. Clear IndexedDB
     if (this.db) {
       try {
         await new Promise((resolve, reject) => {
@@ -772,29 +837,17 @@ class MathVaultApp {
       multLevel: '2d_2d',
       operations: ['addition', 'subtraction', 'squares', 'tables']
     };
+
+    // Pending Action State
+    this.pendingDeleteId = null;
   }
 
   async init() {
     await this.db.init();
     let stored = await this.db.getAllQuestions();
 
-    // 🔄 Automatic Recovery: Check if there are questions saved in previous app storage/database versions
-    try {
-      const recovered = await this.db.recoverOldVersionData();
-      if (recovered && recovered.length > 0) {
-        const existingIds = new Set((stored || []).map((q) => q.id));
-        const newRecovered = recovered.filter((q) => !existingIds.has(q.id));
-        if (newRecovered.length > 0) {
-          await this.db.bulkAdd(newRecovered);
-          stored = await this.db.getAllQuestions();
-          console.info(`[MathVault] Successfully recovered ${newRecovered.length} questions from previous storage.`);
-        }
-      }
-    } catch (e) {
-      console.warn('[MathVault] Legacy recovery check skipped:', e);
-    }
-
-    if ((!stored || stored.length === 0) && !this.db.hasSeeded()) {
+    // If server is not reachable and local database has never been seeded, seed default samples
+    if (!this.db.isServerConnected && (!stored || stored.length === 0) && !this.db.hasSeeded()) {
       if (typeof INITIAL_SAMPLE_QUESTIONS !== 'undefined' && INITIAL_SAMPLE_QUESTIONS.length > 0) {
         await this.db.bulkAdd(INITIAL_SAMPLE_QUESTIONS);
         this.db.markSeeded();
@@ -803,6 +856,7 @@ class MathVaultApp {
     }
 
     this.questions = stored || [];
+    
     this.initTheme();
     this.initGlobalEventDelegation();
     this.initEventListeners();
@@ -812,7 +866,9 @@ class MathVaultApp {
     this.updateStats();
 
     // Initial Generator Question
-    this.startNewGenQuiz();
+    try {
+      this.startNewGenQuiz();
+    } catch (e) {}
   }
 
   // ---------------- Theme Management ----------------
@@ -868,13 +924,13 @@ class MathVaultApp {
   // ---------------- Global Event Delegation ----------------
   initGlobalEventDelegation() {
     document.addEventListener('click', async (e) => {
-      // 1. Delete Question
+      // 1. Delete Question (Triggers confirmation modal)
       const deleteBtn = e.target.closest('[data-action="delete"]');
       if (deleteBtn) {
         e.preventDefault();
         e.stopPropagation();
         const id = deleteBtn.getAttribute('data-id');
-        if (id) await this.deleteQuestionPermanently(id);
+        if (id) this.openDeleteConfirmModal(id);
         return;
       }
 
@@ -945,6 +1001,30 @@ class MathVaultApp {
         return;
       }
     });
+  }
+
+  // ---------------- Delete Confirmation Modal ----------------
+  openDeleteConfirmModal(id) {
+    const q = this.questions.find((item) => item.id === id);
+    if (!q) return;
+
+    this.pendingDeleteId = id;
+    const modal = document.getElementById('deleteConfirmModal');
+    const titleEl = document.getElementById('deletePreviewTitle');
+    const textEl = document.getElementById('deletePreviewText');
+
+    if (titleEl) titleEl.textContent = q.title || 'Untitled Question';
+    if (textEl) {
+      MathRenderer.renderFormatted(textEl, q.question || '');
+    }
+
+    if (modal) modal.style.display = 'flex';
+  }
+
+  closeDeleteConfirmModal() {
+    this.pendingDeleteId = null;
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) modal.style.display = 'none';
   }
 
   async deleteQuestionPermanently(id) {
@@ -1104,6 +1184,17 @@ class MathVaultApp {
     document.getElementById('btnLoadSampleData')?.addEventListener('click', () => this.loadSampleData());
     document.getElementById('btnClearAllData')?.addEventListener('click', () => this.clearAllData());
 
+    // Delete Confirmation Modal Listeners
+    document.getElementById('btnCloseDeleteModal')?.addEventListener('click', () => this.closeDeleteConfirmModal());
+    document.getElementById('btnCancelDelete')?.addEventListener('click', () => this.closeDeleteConfirmModal());
+    document.getElementById('btnConfirmDelete')?.addEventListener('click', async () => {
+      if (this.pendingDeleteId) {
+        const id = this.pendingDeleteId;
+        this.closeDeleteConfirmModal();
+        await this.deleteQuestionPermanently(id);
+      }
+    });
+
     // Generator Tab Listeners
     document.getElementById('btnGenerateNewQuestion')?.addEventListener('click', () => this.startNewGenQuiz());
     document.getElementById('btnNextGenQuestion')?.addEventListener('click', () => this.nextGenQuizQuestion());
@@ -1177,8 +1268,57 @@ class MathVaultApp {
     document.getElementById('btnSpeedSubmit')?.addEventListener('click', () => this.checkSpeedAnswer());
     
     const speedInput = document.getElementById('speedCalcInput');
-    speedInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
+    // Prevent mobile keyboard from opening on direct tap of input
+    if (speedInput) {
+      speedInput.addEventListener('touchstart', (e) => {
+        // Prevent virtual keyboard popup on mobile
+        e.preventDefault();
+      }, { passive: false });
+    }
+
+    // Touch Numpad buttons delegation
+    document.querySelectorAll('.numpad-btn').forEach((btn) => {
+      const handlePress = (e) => {
+        e.preventDefault();
+        const key = btn.getAttribute('data-key');
+        this.handleSpeedNumpad(key);
+      };
+      btn.addEventListener('touchstart', handlePress, { passive: false });
+      btn.addEventListener('click', (e) => {
+        if (e.pointerType === 'touch') return; // already handled by touchstart
+        const key = btn.getAttribute('data-key');
+        this.handleSpeedNumpad(key);
+      });
+    });
+
+    // Global keyboard listener for Desktop users during active Speed Drill
+    document.addEventListener('keydown', (e) => {
+      if (!this.speedSessionActive) return;
+      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      if (activeTag === 'textarea' || (activeTag === 'input' && document.activeElement.id !== 'speedCalcInput')) {
+        return;
+      }
+
+      const input = document.getElementById('speedCalcInput');
+      if (!input) return;
+
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        input.value += e.key;
+      } else if (e.key === '-' || e.key === '.') {
+        e.preventDefault();
+        if (e.key === '-' && !input.value.startsWith('-')) {
+          input.value = '-' + input.value;
+        } else if (e.key === '.' && !input.value.includes('.')) {
+          input.value += '.';
+        }
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        input.value = input.value.slice(0, -1);
+      } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        input.value = '';
+      } else if (e.key === 'Enter') {
         e.preventDefault();
         this.checkSpeedAnswer();
       } else if (e.key === ' ') {
@@ -1187,20 +1327,44 @@ class MathVaultApp {
       }
     });
 
-    // Touch Numpad buttons delegation
-    document.querySelectorAll('.numpad-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const key = btn.getAttribute('data-key');
-        this.handleSpeedNumpad(key);
-      });
-    });
-
+    document.getElementById('btnArenaExitTop')?.addEventListener('click', () => this.endSpeedDrill());
     document.getElementById('btnToggleDrillHint')?.addEventListener('click', () => this.toggleSpeedHint());
     document.getElementById('btnSkipDrillQuestion')?.addEventListener('click', () => this.skipSpeedQuestion());
     document.getElementById('btnEndDrillEarly')?.addEventListener('click', () => this.endSpeedDrill());
     document.getElementById('btnRestartSameDrill')?.addEventListener('click', () => this.startSpeedDrill());
     document.getElementById('btnChooseAnotherTrack')?.addEventListener('click', () => this.exitSpeedDrillToSetup());
     document.getElementById('btnOpenSpeedHistory')?.addEventListener('click', () => this.showSpeedHistoryModal());
+
+    // Pre-Quiz Customization Quick Selector Pills
+    document.getElementById('btnSelectAllSpeedOps')?.addEventListener('click', () => this.setSpeedOpCheckboxes('all'));
+    document.getElementById('btnSelectSscBankSpeedOps')?.addEventListener('click', () => this.setSpeedOpCheckboxes(['simplification']));
+    document.getElementById('btnSelectPowersRootsSpeedOps')?.addEventListener('click', () => this.setSpeedOpCheckboxes(['squares', 'square_root', 'cubes', 'cube_root']));
+    document.getElementById('btnSelectCoreSpeedOps')?.addEventListener('click', () => this.setSpeedOpCheckboxes(['addition', 'subtraction', 'multiplication', 'tables']));
+
+    // Range Preset Tags
+    document.querySelectorAll('#squarePresetTags .btn-range-preset').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const min = parseInt(btn.getAttribute('data-min'), 10);
+        const max = parseInt(btn.getAttribute('data-max'), 10);
+        this.setSquareRange(min, max);
+      });
+    });
+
+    document.querySelectorAll('#cubePresetTags .btn-range-preset').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const min = parseInt(btn.getAttribute('data-min'), 10);
+        const max = parseInt(btn.getAttribute('data-max'), 10);
+        this.setCubeRange(min, max);
+      });
+    });
+
+    document.querySelectorAll('#tablePresetTags .btn-range-preset').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const min = parseInt(btn.getAttribute('data-min'), 10);
+        const max = parseInt(btn.getAttribute('data-max'), 10);
+        this.setTableRange(min, max);
+      });
+    });
   }
 
   switchTab(tabKey) {
@@ -2683,6 +2847,60 @@ class MathVaultApp {
     }
   }
 
+  setSquareRange(min, max) {
+    const minEl = document.getElementById('speedSquareMin');
+    const maxEl = document.getElementById('speedSquareMax');
+    if (minEl) minEl.value = min;
+    if (maxEl) maxEl.value = max;
+    document.querySelectorAll('#squarePresetTags .btn-range-preset').forEach((btn) => {
+      const bMin = parseInt(btn.getAttribute('data-min'), 10);
+      const bMax = parseInt(btn.getAttribute('data-max'), 10);
+      btn.classList.toggle('active', bMin === min && bMax === max);
+    });
+  }
+
+  setCubeRange(min, max) {
+    const minEl = document.getElementById('speedCubeMin');
+    const maxEl = document.getElementById('speedCubeMax');
+    if (minEl) minEl.value = min;
+    if (maxEl) maxEl.value = max;
+    document.querySelectorAll('#cubePresetTags .btn-range-preset').forEach((btn) => {
+      const bMin = parseInt(btn.getAttribute('data-min'), 10);
+      const bMax = parseInt(btn.getAttribute('data-max'), 10);
+      btn.classList.toggle('active', bMin === min && bMax === max);
+    });
+  }
+
+  setTableRange(min, max) {
+    const minEl = document.getElementById('speedTableMin');
+    const maxEl = document.getElementById('speedTableMax');
+    if (minEl) minEl.value = min;
+    if (maxEl) maxEl.value = max;
+    document.querySelectorAll('#tablePresetTags .btn-range-preset').forEach((btn) => {
+      const bMin = parseInt(btn.getAttribute('data-min'), 10);
+      const bMax = parseInt(btn.getAttribute('data-max'), 10);
+      btn.classList.toggle('active', bMin === min && bMax === max);
+    });
+  }
+
+  setSpeedOpCheckboxes(selected) {
+    const checkboxes = document.querySelectorAll('.speed-op-check');
+    if (selected === 'all') {
+      checkboxes.forEach((cb) => cb.checked = true);
+    } else if (Array.isArray(selected)) {
+      checkboxes.forEach((cb) => {
+        cb.checked = selected.includes(cb.value);
+      });
+    }
+
+    // Update quick pill active state
+    document.querySelectorAll('.btn-quick-pill').forEach((btn) => btn.classList.remove('active'));
+    if (selected === 'all') document.getElementById('btnSelectAllSpeedOps')?.classList.add('active');
+    else if (Array.isArray(selected) && selected.includes('simplification') && selected.length === 1) document.getElementById('btnSelectSscBankSpeedOps')?.classList.add('active');
+    else if (Array.isArray(selected) && selected.includes('squares') && selected.includes('cubes')) document.getElementById('btnSelectPowersRootsSpeedOps')?.classList.add('active');
+    else if (Array.isArray(selected) && selected.includes('addition') && selected.includes('subtraction')) document.getElementById('btnSelectCoreSpeedOps')?.classList.add('active');
+  }
+
   selectSpeedTrack(trackName) {
     this.speedConfig.track = trackName;
     document.querySelectorAll('.speed-track-card').forEach((card) => {
@@ -2690,48 +2908,69 @@ class MathVaultApp {
       card.classList.toggle('active', isSelected);
     });
 
-    const customPanel = document.getElementById('speedCustomPanel');
-    if (customPanel) {
-      customPanel.style.display = (trackName === 'custom') ? 'block' : 'none';
-    }
+    const modeSelect = document.getElementById('speedModeSelect');
+    const diffSelect = document.getElementById('speedDifficultySelect');
+    const multSelect = document.getElementById('speedMultLevelSelect');
 
-    // Configure presets
+    // Configure presets & update pre-quiz checkboxes
     if (trackName === 'daily_mix') {
-      this.speedConfig.operations = ['addition', 'subtraction', 'squares', 'tables'];
-      this.speedConfig.mode = 'timed_300'; // 5 Mins
-      this.speedConfig.difficulty = 'medium';
+      this.setSpeedOpCheckboxes(['addition', 'subtraction', 'squares', 'tables']);
+      if (modeSelect) modeSelect.value = 'timed_300'; // 5 Mins
+      if (diffSelect) diffSelect.value = 'medium';
+      this.setSquareRange(1, 40);
+      this.setTableRange(12, 30);
+    } else if (trackName === 'ssc_banking') {
+      this.setSpeedOpCheckboxes(['simplification']);
+      if (modeSelect) modeSelect.value = 'sprint_20';
+      if (diffSelect) diffSelect.value = 'hard';
     } else if (trackName === 'squares_cubes') {
-      this.speedConfig.operations = ['squares', 'cubes', 'square_root', 'cube_root'];
-      this.speedConfig.mode = 'sprint_25';
-      this.speedConfig.difficulty = 'medium';
+      this.setSpeedOpCheckboxes(['squares', 'cubes', 'square_root', 'cube_root']);
+      if (modeSelect) modeSelect.value = 'sprint_25';
+      if (diffSelect) diffSelect.value = 'medium';
+      this.setSquareRange(1, 40);
+      this.setCubeRange(1, 25);
     } else if (trackName === 'multiplication_tables') {
-      this.speedConfig.operations = ['tables'];
-      this.speedConfig.mode = 'sprint_20';
-      this.speedConfig.difficulty = 'medium';
+      this.setSpeedOpCheckboxes(['tables']);
+      if (modeSelect) modeSelect.value = 'sprint_20';
+      if (diffSelect) diffSelect.value = 'medium';
+      this.setTableRange(12, 30);
     } else if (trackName === 'mult_3digit') {
-      this.speedConfig.operations = ['multiplication'];
-      this.speedConfig.multLevel = '3d_2d';
-      this.speedConfig.mode = 'sprint_20';
-      this.speedConfig.difficulty = 'hard';
+      this.setSpeedOpCheckboxes(['multiplication']);
+      if (multSelect) multSelect.value = '3d_2d';
+      if (modeSelect) modeSelect.value = 'sprint_20';
+      if (diffSelect) diffSelect.value = 'hard';
     } else if (trackName === 'add_sub_chains') {
-      this.speedConfig.operations = ['add_sub_mix'];
-      this.speedConfig.mode = 'sprint_20';
-      this.speedConfig.difficulty = 'medium';
+      this.setSpeedOpCheckboxes(['add_sub_mix']);
+      if (modeSelect) modeSelect.value = 'sprint_20';
+      if (diffSelect) diffSelect.value = 'medium';
+    } else if (trackName === 'custom') {
+      this.setSpeedOpCheckboxes('all');
     }
   }
 
   startSpeedDrill() {
     if (typeof SpeedCalcEngine === 'undefined') return;
 
-    // Read custom values if on custom track
-    if (this.speedConfig.track === 'custom') {
-      const selectedOps = [];
-      document.querySelectorAll('.speed-op-check:checked').forEach((cb) => selectedOps.push(cb.value));
-      this.speedConfig.operations = selectedOps.length > 0 ? selectedOps : ['addition', 'subtraction', 'squares'];
-      this.speedConfig.mode = document.getElementById('speedModeSelect')?.value || 'sprint_20';
-      this.speedConfig.difficulty = document.getElementById('speedDifficultySelect')?.value || 'medium';
-      this.speedConfig.multLevel = document.getElementById('speedMultLevelSelect')?.value || '2d_2d';
-    }
+    // Always read current checked operations and customized controls
+    const selectedOps = [];
+    document.querySelectorAll('.speed-op-check:checked').forEach((cb) => selectedOps.push(cb.value));
+    this.speedConfig.operations = selectedOps.length > 0 ? selectedOps : ['addition', 'subtraction', 'squares'];
+    this.speedConfig.mode = document.getElementById('speedModeSelect')?.value || 'sprint_20';
+    this.speedConfig.difficulty = document.getElementById('speedDifficultySelect')?.value || 'medium';
+    this.speedConfig.multLevel = document.getElementById('speedMultLevelSelect')?.value || '2d_2d';
+
+    // Custom ranges for Squares, Cubes, and Tables
+    const sqMin = Math.max(1, parseInt(document.getElementById('speedSquareMin')?.value, 10) || 1);
+    const sqMax = Math.max(sqMin, parseInt(document.getElementById('speedSquareMax')?.value, 10) || 40);
+    this.speedConfig.squareRange = [sqMin, sqMax];
+
+    const cbMin = Math.max(1, parseInt(document.getElementById('speedCubeMin')?.value, 10) || 1);
+    const cbMax = Math.max(cbMin, parseInt(document.getElementById('speedCubeMax')?.value, 10) || 25);
+    this.speedConfig.cubeRange = [cbMin, cbMax];
+
+    const tbMin = Math.max(1, parseInt(document.getElementById('speedTableMin')?.value, 10) || 12);
+    const tbMax = Math.max(tbMin, parseInt(document.getElementById('speedTableMax')?.value, 10) || 30);
+    this.speedConfig.tableRange = [tbMin, tbMax];
 
     // Determine target count or timer seconds
     const mode = this.speedConfig.mode || 'sprint_20';
@@ -2751,11 +2990,18 @@ class MathVaultApp {
     this.speedQuestionIndex = 0;
     this.speedSessionHistory = [];
     this.speedStreak = 0;
+    this.speedSeenKeys = new Set(); // Guarantees no repeated questions in active quiz session
 
-    // UI View Transitions
+    // Enter Fullscreen Quiz Mode
+    document.body.classList.add('speed-drill-fullscreen');
     document.getElementById('speedSetupSection').style.display = 'none';
     document.getElementById('speedResultsCard').style.display = 'none';
-    document.getElementById('speedArenaCard').style.display = 'flex';
+    
+    const arena = document.getElementById('speedArenaCard');
+    if (arena) {
+      arena.classList.add('fullscreen-drill');
+      arena.style.display = 'flex';
+    }
 
     // Start Timer
     clearInterval(this.speedTimerInterval);
@@ -2798,7 +3044,20 @@ class MathVaultApp {
       return;
     }
 
-    this.speedCurrentQuestion = SpeedCalcEngine.generateQuestion(this.speedConfig);
+    // Generate non-repeating problem for current drill
+    let attempts = 0;
+    let nextQ = null;
+    while (attempts < 45) {
+      nextQ = SpeedCalcEngine.generateQuestion(this.speedConfig);
+      const uniqueKey = (nextQ.expression || '').replace(/\s+/g, '');
+      if (!this.speedSeenKeys.has(uniqueKey)) {
+        this.speedSeenKeys.add(uniqueKey);
+        break;
+      }
+      attempts++;
+    }
+
+    this.speedCurrentQuestion = nextQ;
     this.speedQuestionStartTime = Date.now();
 
     this.renderSpeedProblem();
@@ -2853,7 +3112,6 @@ class MathVaultApp {
     if (input) {
       input.value = '';
       input.className = 'speed-calc-input';
-      input.focus();
     }
     if (feedback) {
       feedback.textContent = '';
@@ -2938,10 +3196,17 @@ class MathVaultApp {
       input.value = input.value.slice(0, -1);
     } else if (key === 'clear') {
       input.value = '';
+    } else if (key === '-') {
+      if (!input.value.startsWith('-')) {
+        input.value = '-' + input.value;
+      }
+    } else if (key === '.') {
+      if (!input.value.includes('.')) {
+        input.value += '.';
+      }
     } else {
       input.value += key;
     }
-    input.focus();
   }
 
   toggleSpeedHint() {
@@ -2973,12 +3238,19 @@ class MathVaultApp {
     this.speedSessionActive = false;
     clearInterval(this.speedTimerInterval);
 
+    // Remove Fullscreen Quiz Mode
+    document.body.classList.remove('speed-drill-fullscreen');
+    const arena = document.getElementById('speedArenaCard');
+    if (arena) {
+      arena.classList.remove('fullscreen-drill');
+      arena.style.display = 'none';
+    }
+
     // Analyze session with SpeedCalcEngine
     const report = SpeedCalcEngine.analyzeSession(this.speedSessionHistory);
     SpeedCalcEngine.saveSession(report);
 
-    // Switch Views
-    document.getElementById('speedArenaCard').style.display = 'none';
+    // Switch to Results View
     document.getElementById('speedResultsCard').style.display = 'block';
 
     this.renderSpeedDiagnosis(report);
@@ -3038,12 +3310,21 @@ class MathVaultApp {
       MathRenderer.renderMathInElement(recList);
     }
 
-    this.triggerConfetti();
+    if (typeof confetti === 'function') {
+      try {
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      } catch (e) {}
+    }
   }
 
   exitSpeedDrillToSetup() {
+    document.body.classList.remove('speed-drill-fullscreen');
+    const arena = document.getElementById('speedArenaCard');
+    if (arena) {
+      arena.classList.remove('fullscreen-drill');
+      arena.style.display = 'none';
+    }
     document.getElementById('speedResultsCard').style.display = 'none';
-    document.getElementById('speedArenaCard').style.display = 'none';
     document.getElementById('speedSetupSection').style.display = 'block';
     this.initSpeedLabUI();
   }
